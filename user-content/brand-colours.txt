@@ -1,0 +1,10 @@
+Primary
+Blue: #1c5fb8
+
+Backgrounds
+White: #ffffff
+Grey: #b4c3cb
+
+Highlights
+Yellow: #ffe655
+Orange: #fc9736

@@ -1,0 +1,49 @@
+This is a donation platform for the Happier Lives Institute (HLI).
+By clicking on the donate button on our website it will redirect donors
+to this separate donation page on which they will select where they want to give,
+how much, the split between charities and give us some information about themselves.
+
+HLI is an independent research charity that identifies the most 
+cost-effective ways to improve human wellbeing. We focus on 
+subjective wellbeing — how people actually feel about their lives — 
+rather than just income or health outcomes. Our methodology uses
+the WELLBY (Wellbeing-Adjusted Life Year), which lets us compare 
+the impact of very different interventions on a common scale.
+
+Our donors are typically thoughtful, research-oriented people in the 
+effective altruism and effective giving community. They care about 
+evidence, want to understand where their money goes, and respond to 
+transparency over emotional appeals.
+
+The purpose of this site is to make donating to HLI feel as clear, 
+trustworthy, and frictionless as possible. It should feel like a 
+natural extension of the HLI brand: calm, rigorous, warm but not 
+sentimental. Not a generic charity donation page.
+
+Donors can give one-time or monthly. We accept card payments via 
+Stripe. Gift Aid is available for UK taxpayers. Donations can be given
+to our recommended charities (StrongMinds, Friendship Bench, Pure Earth
+and Taimaka), to HLI or to our Happier Lives Fund which is a fund where 
+we use our expert knowledge to disburse in the ways we think best and keep 
+10% for HLI. It should be clear the Happier Lives Fund (HLF) is the recommended option.  I want little 
+'i' symbols which the donors can hover over to learn more about the options. For donors picking
+our recommended charities they should be able to choose a percetange to give
+to HLI on a slider which has 0%, 5%, 10%, 15% and 25% with 10% selected by default,
+and labelled as recommended. The flow should be donors select which of the options they would
+like to give to, then the total amount they would like to give (and whether this is 
+one off or monthly), then they should be given sliders which let them decide
+the split of these donations between their selected charities. At the bottom
+there should be a calculator which provides the number of years of depression averted
+by this donation split. I will provide the numbers later but for now assume each dollar
+to StrongMinds and Friendship Bench avert 2 years of depression, each dollar to Taimaka 
+and Pure Earth avery 1 year, and each dollar to the HLF averts 3.
+
+Donors should be able give in a wide range of currencies.
+
+Key trust signals to include:
+- Clear breakdown of what donations fund
+- Links to our research and transparency pages at happierlivesinstitute.org
+- No percentage taken from donations
+
+Tone: honest, considered, data-driven. Not flashy. Not 
+guilt-driven. We respect our donors' intelligence.
