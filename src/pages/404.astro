@@ -1,0 +1,47 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Page Not Found | Happier Lives Institute">
+  <main class="not-found">
+    <h1>Page not found</h1>
+    <p>The page you're looking for doesn't exist.</p>
+    <a href="/" class="btn-home">Go to the donation portal →</a>
+  </main>
+</BaseLayout>
+
+<style>
+  .not-found {
+    max-width: 480px;
+    margin: 80px auto;
+    text-align: center;
+    padding: 0 16px;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: var(--color-text);
+  }
+
+  p {
+    color: var(--color-text-secondary);
+    margin-bottom: 24px;
+  }
+
+  .btn-home {
+    display: inline-block;
+    padding: 10px 24px;
+    background: var(--color-primary);
+    color: white;
+    border-radius: 10px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .btn-home:hover {
+    background: var(--color-primary-dark);
+    text-decoration: none;
+  }
+</style>

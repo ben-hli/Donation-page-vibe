@@ -1,0 +1,1631 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { charities, donationOptions } from '../data/charities';
+import { currencies, defaultCurrency } from '../data/currencies';
+---
+
+<BaseLayout
+  title="Donate | Happier Lives Institute"
+  description="Give to the world's most cost-effective wellbeing charities. Choose the Happier Lives Fund or split your donation between our recommended charities."
+>
+  <main class="page">
+
+    <!-- Header -->
+    <header class="page-header">
+      <a href="https://happierlivesinstitute.org" target="_blank" rel="noopener" aria-label="Happier Lives Institute homepage">
+        <img src="/images/hli-logo.png" alt="Happier Lives Institute" class="logo" width="160" height="48" />
+      </a>
+      <p class="header-subtitle">Donation Portal</p>
+    </header>
+
+    <!-- Progress bar (rendered by JS) -->
+    <nav class="progress-nav" id="progressNav" aria-label="Donation steps"></nav>
+
+    <!-- Form card -->
+    <div class="form-card">
+
+      <!-- ── Step 1: Destination ── -->
+      <section class="step active" id="step-1" aria-labelledby="step1-title">
+        <h2 id="step1-title" class="step-title">Where would you like to give?</h2>
+        <p class="step-desc">Each option reflects HLI's latest research on wellbeing impact.</p>
+
+        <div class="option-list" role="radiogroup" aria-labelledby="step1-title">
+          {donationOptions.map((opt) => (
+            <label class="option-card" for={`dest-${opt.id}`}>
+              <input
+                type="radio"
+                id={`dest-${opt.id}`}
+                name="destination"
+                value={opt.id}
+                class="option-radio"
+              />
+              <div class="option-body">
+                <div class="option-header-row">
+                  <span class="option-name">{opt.name}</span>
+                  {opt.recommended && <span class="badge-recommended">Recommended</span>}
+                  <button
+                    type="button"
+                    class="info-btn"
+                    aria-label={`More about ${opt.name}`}
+                    data-tooltip={opt.description}
+                  >ⓘ</button>
+                </div>
+                <p class="option-tagline">{opt.tagline}</p>
+              </div>
+              <span class="option-check" aria-hidden="true">✓</span>
+            </label>
+          ))}
+        </div>
+      </section>
+
+      <!-- ── Step 2: Amount ── -->
+      <section class="step" id="step-2" aria-labelledby="step2-title">
+        <h2 id="step2-title" class="step-title">How much would you like to give?</h2>
+
+        <div class="freq-toggle" role="group" aria-label="Donation frequency">
+          <button type="button" class="freq-btn active" data-freq="one-off">One-time</button>
+          <button type="button" class="freq-btn" data-freq="monthly">Monthly</button>
+        </div>
+
+        <div class="amount-row">
+          <div class="currency-wrapper">
+            <select id="currency" aria-label="Currency">
+              {currencies.map((c) => (
+                <option value={c.code} selected={c.code === defaultCurrency}>
+                  {c.code} {c.symbol}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div class="amount-input-wrapper">
+            <span class="amount-symbol" id="currencySymbol">$</span>
+            <input
+              type="number"
+              id="amount"
+              placeholder="0"
+              min="1"
+              step="1"
+              aria-label="Donation amount"
+            />
+          </div>
+        </div>
+
+        <div class="preset-amounts" aria-label="Preset amounts">
+          {[25, 50, 100, 250, 500, 1000].map((n) => (
+            <button type="button" class="preset-btn" data-amount={n}>{n}</button>
+          ))}
+        </div>
+
+        <p class="amount-note" id="amountNote"></p>
+      </section>
+
+      <!-- ── Step 3: Split (Recommended Charities only) ── -->
+      <section class="step" id="step-3" aria-labelledby="step3-title">
+        <h2 id="step3-title" class="step-title">How would you like to split your donation?</h2>
+        <p class="step-desc">Adjust the sliders to divide your gift between the charities.</p>
+
+        <!-- HLI contribution stepped selector -->
+        <div class="hli-contrib-card">
+          <div class="hli-contrib-header">
+            <span class="hli-contrib-label">Contribution to HLI's research</span>
+            <button
+              type="button"
+              class="info-btn"
+              aria-label="More about the HLI contribution"
+              data-tooltip="HLI is the research organisation behind these recommendations. A small contribution to HLI helps fund the rigorous work that identifies high-impact opportunities."
+            >ⓘ</button>
+          </div>
+          <div class="stepped-selector" role="radiogroup" aria-label="HLI percentage">
+            {[0, 5, 10, 15, 25].map((pct) => (
+              <label class={`step-pill${pct === 10 ? ' recommended' : ''}`}>
+                <input type="radio" name="hli-pct" value={pct} checked={pct === 10} />
+                <span>{pct}%{pct === 10 ? <em> rec.</em> : ''}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <!-- Charity split sliders -->
+        <div class="charity-splits" id="charitySplits">
+          {charities.map((c, i) => (
+            <div class="charity-slider-row" data-charity-id={c.id}>
+              <div class="charity-slider-header">
+                <div class="charity-info">
+                  <span class="charity-name">{c.name}</span>
+                  <button
+                    type="button"
+                    class="info-btn"
+                    aria-label={`More about ${c.name}`}
+                    data-tooltip={c.fullDescription}
+                  >ⓘ</button>
+                </div>
+                <span class="charity-pct-label" id={`pct-${c.id}`}>25%</span>
+              </div>
+              <input
+                type="range"
+                class="charity-range"
+                id={`range-${c.id}`}
+                min="0"
+                max="100"
+                value="25"
+                step="1"
+                aria-label={`${c.name} percentage`}
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow="25"
+              />
+            </div>
+          ))}
+        </div>
+
+        <div class="split-total" id="splitTotal">
+          <span>Total: </span><span id="splitTotalPct">100%</span>
+          <span class="split-total-note" id="splitTotalNote"></span>
+        </div>
+
+        <!-- Impact calculator -->
+        <div class="impact-card">
+          <div class="impact-header-row">
+            <span class="impact-heading">Estimated impact</span>
+            <button
+              type="button"
+              class="info-btn"
+              aria-label="About this estimate"
+              data-tooltip="Based on HLI's WELLBY research. Each figure represents the estimated years of depression averted per dollar. These are best-evidence estimates and will be updated as research evolves."
+            >ⓘ</button>
+          </div>
+          <div class="impact-number" id="impactNumber">—</div>
+          <div class="impact-desc">years of depression averted</div>
+          <div class="impact-breakdown" id="impactBreakdown"></div>
+        </div>
+      </section>
+
+      <!-- ── Step 4: About you ── -->
+      <section class="step" id="step-4" aria-labelledby="step4-title">
+        <h2 id="step4-title" class="step-title">About you</h2>
+        <p class="step-desc">We need a few details to process your donation and send you a receipt.</p>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="firstName">First name</label>
+            <input type="text" id="firstName" autocomplete="given-name" required />
+          </div>
+          <div class="form-group">
+            <label for="lastName">Last name</label>
+            <input type="text" id="lastName" autocomplete="family-name" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email address</label>
+          <input type="email" id="email" autocomplete="email" required />
+        </div>
+
+        <div class="form-group">
+          <label for="country">Country</label>
+          <select id="country" autocomplete="country">
+            <option value="">Select country…</option>
+            <option value="GB">United Kingdom</option>
+            <option value="US">United States</option>
+            <option value="AU">Australia</option>
+            <option value="CA">Canada</option>
+            <option value="NZ">New Zealand</option>
+            <option value="IE">Ireland</option>
+            <option value="DE">Germany</option>
+            <option value="FR">France</option>
+            <option value="NL">Netherlands</option>
+            <option value="SE">Sweden</option>
+            <option value="NO">Norway</option>
+            <option value="DK">Denmark</option>
+            <option value="CH">Switzerland</option>
+            <option value="AT">Austria</option>
+            <option value="BE">Belgium</option>
+            <option value="FI">Finland</option>
+            <option value="SG">Singapore</option>
+            <option value="HK">Hong Kong</option>
+            <option value="JP">Japan</option>
+            <option value="IN">India</option>
+            <option value="ZA">South Africa</option>
+            <option value="OTHER">Other</option>
+          </select>
+        </div>
+
+        <!-- Gift Aid (UK only) -->
+        <div class="gift-aid-card" id="giftAidSection" hidden>
+          <div class="gift-aid-header">
+            <strong>Boost your donation by 25% at no extra cost</strong>
+          </div>
+          <p class="gift-aid-desc">
+            If you're a UK taxpayer, HLI can reclaim Gift Aid on your donation.
+            This means your gift is worth 25% more at no cost to you.
+          </p>
+          <label class="checkbox-label">
+            <input type="checkbox" id="giftAid" />
+            <span>
+              I am a UK taxpayer and I understand that if I pay less Income Tax and/or Capital
+              Gains Tax in the current tax year than the amount of Gift Aid claimed on all my
+              donations, it is my responsibility to pay any difference.
+            </span>
+          </label>
+        </div>
+
+        <label class="checkbox-label anonymous-label">
+          <input type="checkbox" id="anonymous" />
+          <span>Keep my donation anonymous</span>
+        </label>
+      </section>
+
+      <!-- ── Step 5: Review ── -->
+      <section class="step" id="step-5" aria-labelledby="step5-title">
+        <h2 id="step5-title" class="step-title">Review your donation</h2>
+
+        <div class="review-summary" id="reviewSummary">
+          <!-- Populated by JS -->
+        </div>
+
+        <div class="trust-signals">
+          <div class="trust-signal">
+            <span class="trust-icon">🔒</span>
+            <span>Secure payment via Stripe</span>
+          </div>
+          <div class="trust-signal">
+            <span class="trust-icon">✓</span>
+            <span>No percentage taken from programme donations</span>
+          </div>
+          <div class="trust-signal">
+            <span class="trust-icon">📊</span>
+            <span>
+              <a href="https://happierlivesinstitute.org/transparency" target="_blank" rel="noopener">
+                Full financial transparency
+              </a>
+            </span>
+          </div>
+        </div>
+
+        <button type="button" class="btn-complete" id="completeBtn">
+          Complete Donation →
+        </button>
+        <!-- TODO: Wire up to Stripe Checkout. See CLAUDE.md for integration notes. -->
+        <p class="stripe-note">You'll be taken to Stripe's secure checkout to complete your payment.</p>
+      </section>
+
+    </div><!-- /.form-card -->
+
+    <!-- Navigation -->
+    <div class="form-nav">
+      <button type="button" class="btn btn-back" id="btnBack">← Back</button>
+      <button type="button" class="btn btn-primary" id="btnNext">Continue →</button>
+    </div>
+
+    <!-- Tooltip overlay -->
+    <div class="tooltip-popup" id="tooltipPopup" role="tooltip" aria-live="polite" hidden>
+      <p id="tooltipText"></p>
+    </div>
+
+  </main>
+</BaseLayout>
+
+<!-- ════════════════════════════════════════════
+     Client-side script
+     ════════════════════════════════════════════ -->
+<script define:vars={{ charities, currencies, defaultCurrency }}>
+  // ── State ──────────────────────────────────────────────────────────────
+  const state = {
+    step: 1,
+    destination: /** @type {'hlf'|'recommended'|'hli'|null} */ (null),
+    frequency: 'one-off',
+    currency: defaultCurrency,
+    amount: null,
+    hliPct: 10,
+    splits: Object.fromEntries(charities.map((c) => [c.id, 25])),
+    donor: { firstName: '', lastName: '', email: '', country: '', giftAid: false, anonymous: false },
+  };
+
+  // ── Step sequence ───────────────────────────────────────────────────────
+  function getStepSequence() {
+    return state.destination === 'recommended' ? [1, 2, 3, 4, 5] : [1, 2, 4, 5];
+  }
+
+  function stepLabel(n) {
+    return { 1: 'Destination', 2: 'Amount', 3: 'Split', 4: 'Your details', 5: 'Review' }[n];
+  }
+
+  function nextStep() {
+    const seq = getStepSequence();
+    const idx = seq.indexOf(state.step);
+    return idx < seq.length - 1 ? seq[idx + 1] : null;
+  }
+
+  function prevStep() {
+    const seq = getStepSequence();
+    const idx = seq.indexOf(state.step);
+    return idx > 0 ? seq[idx - 1] : null;
+  }
+
+  // ── DOM helpers ─────────────────────────────────────────────────────────
+  function qs(sel) { return document.querySelector(sel); }
+  function qsa(sel) { return document.querySelectorAll(sel); }
+
+  // ── Progress bar ────────────────────────────────────────────────────────
+  function renderProgress() {
+    const nav = qs('#progressNav');
+    const seq = getStepSequence();
+    const pos = seq.indexOf(state.step) + 1;
+    const total = seq.length;
+
+    nav.innerHTML = seq.map((stepNum, i) => {
+      const done = i < seq.indexOf(state.step);
+      const current = stepNum === state.step;
+      const cls = done ? 'prog-step done' : current ? 'prog-step current' : 'prog-step';
+      const label = stepLabel(stepNum);
+      return `
+        <div class="${cls}" aria-current="${current ? 'step' : 'false'}">
+          <div class="prog-circle">${done ? '✓' : i + 1}</div>
+          <div class="prog-label">${label}</div>
+        </div>
+        ${i < seq.length - 1 ? '<div class="prog-line' + (done ? ' done' : '') + '"></div>' : ''}
+      `;
+    }).join('');
+
+    // Screen reader text
+    nav.setAttribute('aria-label', `Step ${pos} of ${total}: ${stepLabel(state.step)}`);
+  }
+
+  // ── Step transitions ────────────────────────────────────────────────────
+  function goToStep(n) {
+    const current = qs(`.step.active`);
+    const next = qs(`#step-${n}`);
+    if (!next || current === next) return;
+
+    current.classList.remove('active');
+    current.classList.add('leaving');
+
+    setTimeout(() => {
+      current.classList.remove('leaving');
+      state.step = n;
+      next.classList.add('entering');
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          next.classList.remove('entering');
+          next.classList.add('active');
+          renderProgress();
+          renderNavButtons();
+          onStepEnter(n);
+        });
+      });
+    }, 220);
+  }
+
+  function onStepEnter(n) {
+    if (n === 3) renderImpact();
+    if (n === 5) renderReview();
+  }
+
+  // ── Nav buttons ─────────────────────────────────────────────────────────
+  function renderNavButtons() {
+    const btnBack = qs('#btnBack');
+    const btnNext = qs('#btnNext');
+    const seq = getStepSequence();
+    const isFirst = seq[0] === state.step;
+    const isLast = seq[seq.length - 1] === state.step;
+
+    btnBack.style.visibility = isFirst ? 'hidden' : 'visible';
+    btnNext.style.display = isLast ? 'none' : 'inline-flex';
+  }
+
+  // ── Validation ──────────────────────────────────────────────────────────
+  function isStepValid() {
+    switch (state.step) {
+      case 1: return state.destination !== null;
+      case 2: return state.amount !== null && state.amount > 0;
+      case 3: return true; // auto-normalizes on advance
+      case 4: {
+        const { firstName, lastName, email } = state.donor;
+        return firstName.trim() && lastName.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      }
+      default: return true;
+    }
+  }
+
+  // ── Currency symbol ──────────────────────────────────────────────────────
+  function getCurrencySymbol(code) {
+    const c = currencies.find((x) => x.code === code);
+    return c ? c.symbol : code;
+  }
+
+  function updateCurrencySymbol() {
+    qs('#currencySymbol').textContent = getCurrencySymbol(state.currency);
+    renderPresetLabels();
+  }
+
+  function renderPresetLabels() {
+    qsa('.preset-btn').forEach((btn) => {
+      const amt = Number(btn.dataset.amount);
+      btn.textContent = amt >= 1000 ? `${amt}` : `${amt}`;
+    });
+  }
+
+  // ── Impact calculator ────────────────────────────────────────────────────
+  function renderImpact() {
+    const amt = state.amount || 0;
+    let years = 0;
+    let breakdown = [];
+
+    if (state.destination === 'hlf') {
+      const hlf = charities.find(c => c.id === 'hlf') || { yearsPerDollar: 3 };
+      years = amt * 3;
+      breakdown = [{ name: 'Happier Lives Fund', years }];
+    } else if (state.destination === 'recommended') {
+      const charityAmt = amt * (1 - state.hliPct / 100);
+      const totalPct = Object.values(state.splits).reduce((s, v) => s + v, 0);
+      breakdown = charities.map((c) => {
+        const pct = totalPct > 0 ? state.splits[c.id] / totalPct : 0;
+        const charityYears = charityAmt * pct * c.yearsPerDollar;
+        return { name: c.name, years: charityYears };
+      }).filter((b) => b.years > 0);
+      years = breakdown.reduce((s, b) => s + b.years, 0);
+    }
+
+    const numEl = qs('#impactNumber');
+    const bkEl = qs('#impactBreakdown');
+
+    if (years > 0) {
+      numEl.textContent = years < 1
+        ? years.toFixed(2)
+        : years < 100
+        ? years.toFixed(1)
+        : Math.round(years).toLocaleString();
+      bkEl.innerHTML = breakdown
+        .map((b) => `<div class="impact-bk-row"><span>${b.name}</span><span>${b.years < 1 ? b.years.toFixed(2) : b.years.toFixed(1)} yrs</span></div>`)
+        .join('');
+    } else {
+      numEl.textContent = '—';
+      bkEl.innerHTML = '<p class="impact-hint">Enter an amount to see your impact.</p>';
+    }
+  }
+
+  // ── Split sliders ────────────────────────────────────────────────────────
+  function renderSplitTotals() {
+    const total = Object.values(state.splits).reduce((s, v) => s + v, 0);
+    const el = qs('#splitTotalPct');
+    const note = qs('#splitTotalNote');
+    el.textContent = `${Math.round(total)}%`;
+    if (Math.abs(total - 100) > 0.5) {
+      el.style.color = 'var(--color-error)';
+      note.textContent = `— will auto-adjust to 100% when you continue`;
+    } else {
+      el.style.color = 'var(--color-success)';
+      note.textContent = '';
+    }
+  }
+
+  function normalizeSplits() {
+    const total = Object.values(state.splits).reduce((s, v) => s + v, 0);
+    if (total === 0) {
+      const eq = 100 / charities.length;
+      charities.forEach((c) => { state.splits[c.id] = eq; });
+    } else if (Math.abs(total - 100) > 0.5) {
+      charities.forEach((c) => { state.splits[c.id] = (state.splits[c.id] / total) * 100; });
+    }
+    // Sync sliders to normalized values
+    charities.forEach((c) => {
+      const slider = qs(`#range-${c.id}`);
+      const label = qs(`#pct-${c.id}`);
+      if (slider) slider.value = String(Math.round(state.splits[c.id]));
+      if (label) label.textContent = `${Math.round(state.splits[c.id])}%`;
+    });
+    renderSplitTotals();
+    renderImpact();
+  }
+
+  // ── Review summary ────────────────────────────────────────────────────────
+  function renderReview() {
+    const sym = getCurrencySymbol(state.currency);
+    const dest = state.destination === 'hlf'
+      ? 'Happier Lives Fund'
+      : state.destination === 'hli'
+      ? 'Happier Lives Institute'
+      : 'Recommended Charities';
+    const freq = state.frequency === 'monthly' ? '/month' : ' one-time';
+    const total = Object.values(state.splits).reduce((s, v) => s + v, 0);
+
+    let splits = '';
+    if (state.destination === 'recommended') {
+      splits = `
+        <div class="review-row"><span>HLI contribution</span><span>${state.hliPct}%</span></div>
+        ${charities.map((c) => `
+          <div class="review-row"><span>${c.name}</span><span>${Math.round(state.splits[c.id] / (total / 100))}%</span></div>
+        `).join('')}
+      `;
+    }
+
+    let impact = '';
+    if (state.destination !== 'hli') {
+      const amt = state.amount || 0;
+      let years = state.destination === 'hlf' ? amt * 3 : 0;
+      if (state.destination === 'recommended') {
+        const charityAmt = amt * (1 - state.hliPct / 100);
+        years = charities.reduce((s, c) => s + charityAmt * (state.splits[c.id] / (total || 100)) * c.yearsPerDollar, 0);
+      }
+      if (years > 0) {
+        impact = `<div class="review-row impact-row"><span>Estimated impact</span><span>${years < 10 ? years.toFixed(1) : Math.round(years)} years of depression averted</span></div>`;
+      }
+    }
+
+    qs('#reviewSummary').innerHTML = `
+      <div class="review-row"><span>Giving to</span><span>${dest}</span></div>
+      <div class="review-row"><span>Amount</span><span>${sym}${state.amount}${freq}</span></div>
+      ${splits}
+      ${impact}
+      ${state.donor.giftAid ? '<div class="review-row"><span>Gift Aid</span><span>✓ Claimed</span></div>' : ''}
+    `;
+  }
+
+  // ── Event listeners ───────────────────────────────────────────────────────
+  function initEvents() {
+    // Step 1: destination
+    qsa('[name="destination"]').forEach((radio) => {
+      radio.addEventListener('change', () => {
+        state.destination = radio.value;
+        qsa('.option-card').forEach((c) => c.classList.remove('selected'));
+        radio.closest('.option-card').classList.add('selected');
+        renderNavButtons();
+      });
+    });
+
+    // Step 2: frequency
+    qsa('.freq-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        qsa('.freq-btn').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.frequency = btn.dataset.freq;
+      });
+    });
+
+    // Step 2: currency
+    qs('#currency').addEventListener('change', (e) => {
+      state.currency = e.target.value;
+      updateCurrencySymbol();
+    });
+
+    // Step 2: amount input
+    qs('#amount').addEventListener('input', (e) => {
+      state.amount = e.target.value ? Number(e.target.value) : null;
+      qsa('.preset-btn').forEach((b) => b.classList.remove('active'));
+      if (state.amount) {
+        const match = qs(`.preset-btn[data-amount="${state.amount}"]`);
+        if (match) match.classList.add('active');
+      }
+      renderNavButtons();
+    });
+
+    // Step 2: preset amounts
+    qsa('.preset-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const amt = Number(btn.dataset.amount);
+        state.amount = amt;
+        qs('#amount').value = String(amt);
+        qsa('.preset-btn').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderNavButtons();
+      });
+    });
+
+    // Step 3: HLI percentage
+    qsa('[name="hli-pct"]').forEach((radio) => {
+      radio.addEventListener('change', () => {
+        state.hliPct = Number(radio.value);
+        renderImpact();
+      });
+    });
+
+    // Step 3: charity sliders
+    charities.forEach((c) => {
+      const slider = qs(`#range-${c.id}`);
+      const label = qs(`#pct-${c.id}`);
+      if (!slider) return;
+      slider.addEventListener('input', () => {
+        const val = Number(slider.value);
+        state.splits[c.id] = val;
+        label.textContent = `${val}%`;
+        renderSplitTotals();
+        renderImpact();
+      });
+    });
+
+    // Step 4: donor fields
+    ['firstName', 'lastName', 'email'].forEach((id) => {
+      qs(`#${id}`)?.addEventListener('input', (e) => {
+        state.donor[id] = e.target.value;
+        renderNavButtons();
+      });
+    });
+
+    qs('#country').addEventListener('change', (e) => {
+      state.donor.country = e.target.value;
+      const giftAidSection = qs('#giftAidSection');
+      if (e.target.value === 'GB') {
+        giftAidSection.removeAttribute('hidden');
+      } else {
+        giftAidSection.setAttribute('hidden', '');
+        qs('#giftAid').checked = false;
+        state.donor.giftAid = false;
+      }
+    });
+
+    qs('#giftAid').addEventListener('change', (e) => {
+      state.donor.giftAid = e.target.checked;
+    });
+
+    qs('#anonymous').addEventListener('change', (e) => {
+      state.donor.anonymous = e.target.checked;
+    });
+
+    // Back / Next
+    qs('#btnBack').addEventListener('click', () => {
+      const prev = prevStep();
+      if (prev) goToStep(prev);
+    });
+
+    qs('#btnNext').addEventListener('click', () => {
+      if (!isStepValid()) {
+        highlightErrors();
+        return;
+      }
+      if (state.step === 3) normalizeSplits();
+      const next = nextStep();
+      if (next) goToStep(next);
+    });
+
+    // Complete donation (placeholder)
+    qs('#completeBtn').addEventListener('click', () => {
+      alert('Stripe integration pending — see CLAUDE.md for implementation notes.');
+    });
+
+    // Tooltips
+    initTooltips();
+  }
+
+  // ── Tooltips ──────────────────────────────────────────────────────────────
+  function initTooltips() {
+    const popup = qs('#tooltipPopup');
+    const textEl = qs('#tooltipText');
+    let hideTimer;
+
+    function show(btn) {
+      clearTimeout(hideTimer);
+      textEl.textContent = btn.dataset.tooltip;
+      popup.removeAttribute('hidden');
+      const rect = btn.getBoundingClientRect();
+      const scrollY = window.scrollY;
+      popup.style.top = `${rect.bottom + scrollY + 8}px`;
+      popup.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - 300))}px`;
+    }
+
+    function hide() {
+      hideTimer = setTimeout(() => popup.setAttribute('hidden', ''), 150);
+    }
+
+    document.addEventListener('mouseover', (e) => {
+      const btn = e.target.closest('.info-btn[data-tooltip]');
+      if (btn) show(btn);
+      else if (!popup.contains(e.target)) hide();
+    });
+
+    document.addEventListener('focusin', (e) => {
+      const btn = e.target.closest('.info-btn[data-tooltip]');
+      if (btn) show(btn);
+    });
+
+    document.addEventListener('focusout', (e) => {
+      if (!e.relatedTarget?.closest?.('#tooltipPopup')) hide();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') popup.setAttribute('hidden', '');
+    });
+
+    popup.addEventListener('mouseenter', () => clearTimeout(hideTimer));
+    popup.addEventListener('mouseleave', hide);
+  }
+
+  // ── Error highlighting ────────────────────────────────────────────────────
+  function highlightErrors() {
+    if (state.step === 1) {
+      qs('.option-list').classList.add('shake');
+      setTimeout(() => qs('.option-list').classList.remove('shake'), 500);
+    }
+    if (state.step === 2) {
+      qs('#amount').classList.add('error');
+      setTimeout(() => qs('#amount').classList.remove('error'), 2000);
+    }
+    if (state.step === 4) {
+      ['firstName', 'lastName', 'email'].forEach((id) => {
+        const el = qs(`#${id}`);
+        if (!el?.value.trim() || (id === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(el.value))) {
+          el?.classList.add('error');
+          setTimeout(() => el?.classList.remove('error'), 2000);
+        }
+      });
+    }
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  function init() {
+    renderProgress();
+    renderNavButtons();
+    updateCurrencySymbol();
+    renderSplitTotals();
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+</script>
+
+<style>
+  /* ── Layout ── */
+  .page {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 24px 16px 0;
+  }
+
+  /* ── Header ── */
+  .page-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+
+  .logo {
+    height: 40px;
+    width: auto;
+    object-fit: contain;
+  }
+
+  .header-subtitle {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    border-left: 1px solid var(--color-border);
+    padding-left: 12px;
+  }
+
+  /* ── Progress bar ── */
+  .progress-nav {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0;
+    margin-bottom: 24px;
+  }
+
+  :global(.prog-step) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-width: 60px;
+  }
+
+  :global(.prog-circle) {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    background: var(--color-white);
+    color: var(--color-text-secondary);
+    transition: var(--transition);
+  }
+
+  :global(.prog-step.done .prog-circle) {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-white);
+  }
+
+  :global(.prog-step.current .prog-circle) {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-primary-light);
+  }
+
+  :global(.prog-label) {
+    font-size: 0.6875rem;
+    color: var(--color-text-secondary);
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  :global(.prog-step.current .prog-label) {
+    color: var(--color-primary);
+    font-weight: 600;
+  }
+
+  :global(.prog-line) {
+    flex: 1;
+    height: 2px;
+    background: var(--color-border);
+    margin-top: 15px;
+    min-width: 20px;
+    transition: var(--transition);
+  }
+
+  :global(.prog-line.done) {
+    background: var(--color-primary);
+  }
+
+  /* ── Form card ── */
+  .form-card {
+    background: var(--color-white);
+    border-radius: 16px;
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+  }
+
+  /* ── Steps ── */
+  .step {
+    display: none;
+    opacity: 0;
+    padding: 32px;
+    transform: translateY(6px);
+  }
+
+  .step.active {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.25s var(--ease), transform 0.25s var(--ease);
+  }
+
+  .step.leaving {
+    display: block;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 0.2s var(--ease), transform 0.2s var(--ease);
+  }
+
+  .step.entering {
+    display: block;
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  .step-title {
+    font-size: clamp(1.125rem, 2.5vw, 1.375rem);
+    font-weight: 700;
+    color: var(--color-text);
+    margin-bottom: 6px;
+    line-height: 1.25;
+  }
+
+  .step-desc {
+    font-size: 0.9375rem;
+    color: var(--color-text-secondary);
+    margin-bottom: 24px;
+    line-height: 1.5;
+  }
+
+  /* ── Option cards (Step 1) ── */
+  .option-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .option-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
+    position: relative;
+  }
+
+  .option-card:hover {
+    border-color: var(--color-primary);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .option-card.selected {
+    border-color: var(--color-primary);
+    background: var(--color-primary-light);
+  }
+
+  .option-radio {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .option-body {
+    flex: 1;
+  }
+
+  .option-header-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 2px;
+  }
+
+  .option-name {
+    font-weight: 600;
+    font-size: 0.9375rem;
+  }
+
+  .option-tagline {
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary);
+    margin-top: 2px;
+  }
+
+  .badge-recommended {
+    background: var(--color-yellow);
+    color: #7a6000;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 20px;
+  }
+
+  .option-check {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    opacity: 0;
+    transition: opacity var(--transition);
+    flex-shrink: 0;
+  }
+
+  .option-card.selected .option-check {
+    opacity: 1;
+  }
+
+  /* ── Info button ── */
+  .info-btn {
+    font-size: 1rem;
+    color: var(--color-text-secondary);
+    background: none;
+    border: none;
+    padding: 0 2px;
+    line-height: 1;
+    cursor: pointer;
+    transition: color var(--transition);
+    flex-shrink: 0;
+  }
+
+  .info-btn:hover,
+  .info-btn:focus {
+    color: var(--color-primary);
+    outline: none;
+  }
+
+  /* ── Tooltip popup ── */
+  .tooltip-popup {
+    position: absolute;
+    z-index: 100;
+    background: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-lg);
+    padding: 12px 14px;
+    max-width: 280px;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--color-text);
+    pointer-events: auto;
+  }
+
+  /* ── Frequency toggle (Step 2) ── */
+  .freq-toggle {
+    display: flex;
+    gap: 0;
+    margin-bottom: 20px;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    width: fit-content;
+  }
+
+  .freq-btn {
+    padding: 8px 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    background: transparent;
+    border: none;
+    transition: background var(--transition), color var(--transition);
+    cursor: pointer;
+  }
+
+  .freq-btn.active {
+    background: var(--color-primary);
+    color: var(--color-white);
+  }
+
+  /* ── Amount row (Step 2) ── */
+  .amount-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .currency-wrapper select {
+    height: 52px;
+    padding: 0 10px;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg);
+    font-size: 0.9375rem;
+    cursor: pointer;
+    transition: border-color var(--transition);
+  }
+
+  .currency-wrapper select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+  }
+
+  .amount-input-wrapper {
+    flex: 1;
+    position: relative;
+  }
+
+  .amount-symbol {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.125rem;
+    color: var(--color-text-secondary);
+    pointer-events: none;
+  }
+
+  .amount-input-wrapper input {
+    width: 100%;
+    height: 52px;
+    padding: 0 14px 0 36px;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 1.25rem;
+    font-weight: 600;
+    transition: border-color var(--transition);
+  }
+
+  .amount-input-wrapper input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+  }
+
+  .amount-input-wrapper input.error {
+    border-color: var(--color-error);
+  }
+
+  /* ── Preset amounts ── */
+  .preset-amounts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .preset-btn {
+    padding: 8px 16px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    background: var(--color-white);
+    transition: all var(--transition);
+    cursor: pointer;
+  }
+
+  .preset-btn:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+
+  .preset-btn.active {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-white);
+  }
+
+  /* ── HLI contribution card (Step 3) ── */
+  .hli-contrib-card {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 24px;
+  }
+
+  .hli-contrib-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .hli-contrib-label {
+    font-weight: 600;
+    font-size: 0.9375rem;
+  }
+
+  .stepped-selector {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .step-pill {
+    cursor: pointer;
+  }
+
+  .step-pill input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+  }
+
+  .step-pill span {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 6px 12px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    background: var(--color-white);
+    transition: all var(--transition);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .step-pill input[type="radio"]:checked + span {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-white);
+  }
+
+  .step-pill.recommended span {
+    border-color: var(--color-primary-dark);
+  }
+
+  .step-pill em {
+    font-style: normal;
+    font-size: 0.75rem;
+    opacity: 0.85;
+  }
+
+  /* ── Charity sliders (Step 3) ── */
+  .charity-splits {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .charity-slider-row {}
+
+  .charity-slider-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+
+  .charity-info {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .charity-name {
+    font-weight: 500;
+    font-size: 0.9375rem;
+  }
+
+  .charity-pct-label {
+    font-weight: 700;
+    font-size: 0.9375rem;
+    color: var(--color-primary);
+    min-width: 40px;
+    text-align: right;
+  }
+
+  .charity-range {
+    width: 100%;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--color-border);
+    border-radius: 3px;
+    cursor: pointer;
+    accent-color: var(--color-primary);
+  }
+
+  .charity-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    box-shadow: 0 1px 4px rgba(28, 95, 184, 0.3);
+    transition: transform var(--transition);
+  }
+
+  .charity-range::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+  }
+
+  .charity-range::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    border: none;
+    cursor: pointer;
+  }
+
+  /* ── Split total indicator ── */
+  .split-total {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  #splitTotalPct {
+    font-weight: 700;
+  }
+
+  .split-total-note {
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary);
+  }
+
+  /* ── Impact card (Step 3) ── */
+  .impact-card {
+    background: var(--color-primary-light);
+    border: 1px solid #c8daf5;
+    border-radius: var(--radius);
+    padding: 20px;
+    text-align: center;
+  }
+
+  .impact-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+
+  .impact-heading {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-primary);
+  }
+
+  .impact-number {
+    font-size: clamp(2rem, 8vw, 3rem);
+    font-weight: 800;
+    color: var(--color-primary);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .impact-desc {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    margin-bottom: 12px;
+  }
+
+  .impact-breakdown {
+    text-align: left;
+    border-top: 1px solid #c8daf5;
+    padding-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  :global(.impact-bk-row) {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary);
+  }
+
+  :global(.impact-hint) {
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary);
+    text-align: center;
+  }
+
+  /* ── Form fields (Step 4) ── */
+  .form-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 16px;
+  }
+
+  .form-group label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+  }
+
+  .form-group input,
+  .form-group select {
+    height: 46px;
+    padding: 0 12px;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 0.9375rem;
+    transition: border-color var(--transition);
+    background: var(--color-white);
+  }
+
+  .form-group input:focus,
+  .form-group select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+  }
+
+  .form-group input.error {
+    border-color: var(--color-error);
+  }
+
+  /* ── Gift Aid card (Step 4) ── */
+  .gift-aid-card {
+    background: #fffbeb;
+    border: 1.5px solid var(--color-yellow);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .gift-aid-header {
+    margin-bottom: 6px;
+    font-size: 0.9375rem;
+  }
+
+  .gift-aid-desc {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    margin-bottom: 12px;
+    line-height: 1.5;
+  }
+
+  /* ── Checkbox labels ── */
+  .checkbox-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+  }
+
+  .checkbox-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    flex-shrink: 0;
+    accent-color: var(--color-primary);
+    cursor: pointer;
+  }
+
+  .anonymous-label {
+    margin-top: 4px;
+  }
+
+  /* ── Review (Step 5) ── */
+  .review-summary {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  :global(.review-row) {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    font-size: 0.9375rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  :global(.review-row:last-child) {
+    border-bottom: none;
+  }
+
+  :global(.review-row span:first-child) {
+    color: var(--color-text-secondary);
+    font-size: 0.875rem;
+  }
+
+  :global(.review-row span:last-child) {
+    font-weight: 600;
+    text-align: right;
+  }
+
+  :global(.impact-row span:last-child) {
+    color: var(--color-primary);
+  }
+
+  /* ── Trust signals ── */
+  .trust-signals {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+
+  .trust-signal {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+  }
+
+  .trust-icon {
+    font-size: 1rem;
+    width: 24px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .btn-complete {
+    display: block;
+    width: 100%;
+    padding: 16px;
+    background: var(--color-primary);
+    color: var(--color-white);
+    font-size: 1.0625rem;
+    font-weight: 700;
+    border-radius: 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: background var(--transition), transform var(--transition);
+    margin-bottom: 10px;
+  }
+
+  .btn-complete:hover {
+    background: var(--color-primary-dark);
+    transform: translateY(-1px);
+  }
+
+  .stripe-note {
+    text-align: center;
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary);
+  }
+
+  /* ── Form navigation ── */
+  .form-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 0 8px;
+  }
+
+  .btn {
+    padding: 10px 24px;
+    border-radius: 10px;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-back {
+    background: transparent;
+    color: var(--color-text-secondary);
+    border: 1.5px solid var(--color-border);
+  }
+
+  .btn-back:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+
+  .btn-primary {
+    background: var(--color-primary);
+    color: var(--color-white);
+    border: 1.5px solid var(--color-primary);
+    margin-left: auto;
+  }
+
+  .btn-primary:hover {
+    background: var(--color-primary-dark);
+    border-color: var(--color-primary-dark);
+    transform: translateY(-1px);
+  }
+
+  /* ── Shake animation (validation) ── */
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+
+  :global(.shake) {
+    animation: shake 0.45s var(--ease);
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 480px) {
+    .step {
+      padding: 24px 20px;
+    }
+
+    .form-row-2 {
+      grid-template-columns: 1fr;
+    }
+
+    .preset-amounts {
+      gap: 6px;
+    }
+
+    .preset-btn {
+      padding: 7px 12px;
+      font-size: 0.875rem;
+    }
+
+    .stepped-selector {
+      gap: 4px;
+    }
+
+    .step-pill span {
+      padding: 5px 9px;
+      font-size: 0.8125rem;
+    }
+  }
+</style>

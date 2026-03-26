@@ -2,6 +2,9 @@ This is a donation platform for the Happier Lives Institute (HLI).
 By clicking on the donate button on our website it will redirect donors
 to this separate donation page on which they will select where they want to give,
 how much, the split between charities and give us some information about themselves.
+Each question should appear one by one, with a subtle fade animation between each step,
+and a progress bar should be visible at the top, with a back button always visible and 
+a forward button when appropriate.
 
 HLI is an independent research charity that identifies the most 
 cost-effective ways to improve human wellbeing. We focus on 

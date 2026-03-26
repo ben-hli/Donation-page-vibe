@@ -1,0 +1,112 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = 'Donate | Happier Lives Institute',
+  description = "Give to the world's most cost-effective wellbeing charities, directed by HLI's independent research.",
+} = Astro.props;
+
+const canonicalURL = Astro.url.href;
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalURL} />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Happier Lives Institute" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/images/hli-logo.png" />
+
+    <!-- JSON-LD -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": "Happier Lives Institute — Donate",
+        "description": "Give to the world's most cost-effective wellbeing charities, directed by HLI's independent research.",
+        "publisher": {
+          "@type": "Organization",
+          "name": "Happier Lives Institute",
+          "url": "https://happierlivesinstitute.org"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <slot />
+
+    <footer class="site-footer">
+      <nav class="footer-links">
+        <a href="https://happierlivesinstitute.org" target="_blank" rel="noopener">Happier Lives Institute</a>
+        <span aria-hidden="true">·</span>
+        <a href="https://happierlivesinstitute.org/transparency" target="_blank" rel="noopener">Transparency</a>
+        <span aria-hidden="true">·</span>
+        <a href="https://happierlivesinstitute.org/research" target="_blank" rel="noopener">Our research</a>
+      </nav>
+      <p class="footer-credit">
+        <a href="https://albertbozesan.com/vibecoding-websites" target="_blank" rel="noopener">
+          Built with Albert Bozesan's Website Guide
+        </a>
+      </p>
+    </footer>
+  </body>
+</html>
+
+<style>
+  .site-footer {
+    text-align: center;
+    padding: 32px 16px 40px;
+    color: var(--color-text-secondary);
+    font-size: 0.875rem;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .footer-links {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .footer-links a {
+    color: var(--color-text-secondary);
+  }
+
+  .footer-links a:hover {
+    color: var(--color-primary);
+  }
+
+  .footer-credit {
+    font-size: 0.75rem;
+    opacity: 0.65;
+  }
+
+  .footer-credit a {
+    color: inherit;
+  }
+</style>

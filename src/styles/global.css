@@ -1,0 +1,108 @@
+/* ================================================
+   HLI Donation Portal — Global Styles
+   ================================================ */
+
+/* --- Design Tokens --- */
+:root {
+  /* Brand colours */
+  --color-primary: #1c5fb8;
+  --color-primary-dark: #1449a0;
+  --color-primary-light: #e8f0fb;
+  --color-white: #ffffff;
+  --color-grey: #b4c3cb;
+  --color-yellow: #ffe655;
+  --color-orange: #fc9736;
+
+  /* Semantic colours */
+  --color-bg: #f4f7fa;
+  --color-text: #1a2332;
+  --color-text-secondary: #4a5e6e;
+  --color-border: #d8e4eb;
+  --color-border-strong: #b4c3cb;
+  --color-success: #1a8a5a;
+  --color-error: #c0392b;
+
+  /* Typography */
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --line-height: 1.6;
+
+  /* Radii */
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-xs: 6px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(28, 95, 184, 0.07);
+  --shadow-md: 0 4px 20px rgba(28, 95, 184, 0.09);
+  --shadow-lg: 0 8px 40px rgba(28, 95, 184, 0.12);
+
+  /* Transitions */
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --transition: 200ms var(--ease);
+}
+
+/* --- Reset --- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: var(--line-height);
+  color: var(--color-text);
+  background: var(--color-bg);
+  min-height: 100vh;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* --- Utilities --- */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
