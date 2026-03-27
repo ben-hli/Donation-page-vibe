@@ -682,6 +682,11 @@ import { currencies, defaultCurrency } from '../data/currencies';
       alert('Stripe integration pending — see CLAUDE.md for implementation notes.');
     });
 
+    // Prevent info-btn clicks inside option-card labels from triggering radio selection
+    qsa('.option-card .info-btn').forEach((btn) => {
+      btn.addEventListener('click', (e) => e.stopPropagation());
+    });
+
     // Tooltips
     initTooltips();
   }
@@ -756,6 +761,7 @@ import { currencies, defaultCurrency } from '../data/currencies';
     renderNavButtons();
     updateCurrencySymbol();
     renderSplitTotals();
+    initEvents();
   }
 
   document.addEventListener('DOMContentLoaded', init);
