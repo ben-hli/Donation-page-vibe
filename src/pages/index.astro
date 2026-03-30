@@ -142,7 +142,7 @@ import { currencies, defaultCurrency } from '../data/currencies';
                     data-tooltip={c.fullDescription}
                   >ⓘ</button>
                 </div>
-                <span class="charity-pct-label" id={`pct-${c.id}`}>25%</span>
+                <span class="charity-pct-label" id={`pct-${c.id}`}>0%</span>
               </div>
               <input
                 type="range"
@@ -150,7 +150,7 @@ import { currencies, defaultCurrency } from '../data/currencies';
                 id={`range-${c.id}`}
                 min="0"
                 max="100"
-                value="25"
+                value="0"
                 step="1"
                 aria-label={`${c.name} percentage`}
                 aria-valuemin="0"
@@ -174,12 +174,70 @@ import { currencies, defaultCurrency } from '../data/currencies';
               type="button"
               class="info-btn"
               aria-label="About this estimate"
-              data-tooltip="Based on HLI's WELLBY research. Each figure represents the estimated years of depression averted per dollar. These are best-evidence estimates and will be updated as research evolves."
+              data-tooltip="WELLBYs (Wellbeing-Adjusted Life Years) measure the wellbeing impact of your donation using HLI's cost-per-WELLBY estimates. Depression years averted = WELLBYs ÷ 1.3. Confidence score reflects the depth and quality of evidence behind each charity's estimate, weighted by your allocation."
             >ⓘ</button>
           </div>
-          <div class="impact-number" id="impactNumber">—</div>
-          <div class="impact-desc">years of depression averted</div>
+          <div class="impact-metrics">
+            <div class="impact-metric">
+              <div class="impact-number" id="impactWellbys">—</div>
+              <div class="impact-desc">WELLBYs generated</div>
+            </div>
+            <div class="impact-metric impact-metric--secondary">
+              <div class="impact-number" id="impactDepressionYears">—</div>
+              <div class="impact-desc">years of depression averted</div>
+            </div>
+            <div class="impact-metric impact-metric--secondary">
+              <div class="impact-number" id="impactConfidence">—</div>
+              <div class="impact-desc">evidence confidence</div>
+            </div>
+          </div>
           <div class="impact-breakdown" id="impactBreakdown"></div>
+        </div>
+
+        <!-- Outcome cards -->
+        <div class="outcome-cards">
+          <div class="outcome-card">
+            <svg class="outcome-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <!-- Person -->
+              <circle cx="9" cy="7" r="3"/>
+              <path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
+              <!-- Speech bubble -->
+              <path d="M16 8h4a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-1l-2 2v-2h-1a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/>
+            </svg>
+            <div class="outcome-number" id="outcome-strongminds">—</div>
+            <div class="outcome-label">One-to-one psychotherapy courses funded</div>
+          </div>
+          <div class="outcome-card">
+            <svg class="outcome-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <!-- Three people -->
+              <circle cx="9" cy="7" r="2.5"/>
+              <path d="M4 21v-1.5A3.5 3.5 0 0 1 7.5 16h3A3.5 3.5 0 0 1 14 19.5V21"/>
+              <circle cx="17" cy="8" r="2"/>
+              <path d="M15 21v-1a3 3 0 0 1 3-3h0a3 3 0 0 1 3 3v1"/>
+            </svg>
+            <div class="outcome-number" id="outcome-friendship-bench">—</div>
+            <div class="outcome-label">Group psychotherapy courses funded</div>
+          </div>
+          <div class="outcome-card">
+            <svg class="outcome-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <!-- Shield with checkmark -->
+              <path d="M12 3l8 3.5v5C20 16.4 16.6 21 12 22 7.4 21 4 16.4 4 11.5v-5L12 3z"/>
+              <polyline points="9 12 11 14 15 10"/>
+            </svg>
+            <div class="outcome-number" id="outcome-pure-earth">—</div>
+            <div class="outcome-label">Children protected from lead exposure</div>
+          </div>
+          <div class="outcome-card">
+            <svg class="outcome-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <!-- Bowl with food -->
+              <path d="M4 11h16"/>
+              <path d="M5 11a7 7 0 0 0 14 0"/>
+              <path d="M12 4c-1.5 0-2.5 1-2.5 2s1 1.5 1 2.5"/>
+              <path d="M15 4c1 .5 1.5 1.5 1.5 2.5 0 .8-.4 1.5-1 2"/>
+            </svg>
+            <div class="outcome-number" id="outcome-taimaka">—</div>
+            <div class="outcome-label">Children protected from malnutrition</div>
+          </div>
         </div>
       </section>
 
@@ -320,7 +378,7 @@ import { currencies, defaultCurrency } from '../data/currencies';
     currency: defaultCurrency,
     amount: null,
     hliPct: 10,
-    splits: Object.fromEntries(charities.map((c) => [c.id, 25])),
+    splits: Object.fromEntries(charities.map((c) => [c.id, 0])),
     donor: { firstName: '', lastName: '', email: '', country: '', giftAid: false, anonymous: false },
   };
 
@@ -452,39 +510,71 @@ import { currencies, defaultCurrency } from '../data/currencies';
   function renderImpact() {
     const amt = state.amount || 0;
     let years = 0;
-    let breakdown = [];
-
-    if (state.destination === 'hlf') {
-      const hlf = charities.find(c => c.id === 'hlf') || { yearsPerDollar: 3 };
-      years = amt * 3;
-      breakdown = [{ name: 'Happier Lives Fund', years }];
-    } else if (state.destination === 'recommended') {
-      const charityAmt = amt * (1 - state.hliPct / 100);
-      const totalPct = Object.values(state.splits).reduce((s, v) => s + v, 0);
-      breakdown = charities.map((c) => {
-        const pct = totalPct > 0 ? state.splits[c.id] / totalPct : 0;
-        const charityYears = charityAmt * pct * c.yearsPerDollar;
-        return { name: c.name, years: charityYears };
-      }).filter((b) => b.years > 0);
-      years = breakdown.reduce((s, b) => s + b.years, 0);
-    }
-
-    const numEl = qs('#impactNumber');
+    const wellbysEl = qs('#impactWellbys');
+    const deprYrsEl = qs('#impactDepressionYears');
+    const confEl = qs('#impactConfidence');
     const bkEl = qs('#impactBreakdown');
 
-    if (years > 0) {
-      numEl.textContent = years < 1
-        ? years.toFixed(2)
-        : years < 100
-        ? years.toFixed(1)
-        : Math.round(years).toLocaleString();
-      bkEl.innerHTML = breakdown
-        .map((b) => `<div class="impact-bk-row"><span>${b.name}</span><span>${b.years < 1 ? b.years.toFixed(2) : b.years.toFixed(1)} yrs</span></div>`)
-        .join('');
-    } else {
-      numEl.textContent = '—';
+    if (state.destination !== 'recommended' || amt <= 0) {
+      wellbysEl.textContent = '—';
+      deprYrsEl.textContent = '—';
+      confEl.textContent = '—';
+      confEl.className = 'impact-number impact-number--conf';
+      confEl.style.color = '';
       bkEl.innerHTML = '<p class="impact-hint">Enter an amount to see your impact.</p>';
+      charities.forEach((c) => {
+        const el = qs(`#outcome-${c.id}`);
+        if (el) el.textContent = '—';
+      });
+      return;
     }
+
+    const charityAmt = amt * (1 - state.hliPct / 100);
+    const totalSplits = Object.values(state.splits).reduce((s, v) => s + v, 0);
+
+    let totalWellbys = 0;
+    let totalConfidence = 0;
+    const breakdown = [];
+
+    charities.forEach((c) => {
+      const fraction = totalSplits > 0 ? state.splits[c.id] / totalSplits : 0;
+      const allocated = charityAmt * fraction;
+      const wellbys = allocated / c.costPerWellby;
+      totalWellbys += wellbys;
+      totalConfidence += c.confidenceScore * fraction;
+      if (wellbys > 0) breakdown.push({ name: c.name, wellbys });
+    });
+
+    const depressionYears = totalWellbys / 1.3;
+
+    const fmt = (n) => n < 1 ? n.toFixed(2) : n < 100 ? n.toFixed(1) : Math.round(n).toLocaleString();
+
+    let confLabel, confClass;
+    let confColor;
+    if (totalConfidence >= 9)        { confLabel = 'Very Low Risk';  confColor = '#1a4d2e'; }
+    else if (totalConfidence > 7.5)  { confLabel = 'Low Risk';       confColor = '#2d6040'; }
+    else if (totalConfidence >= 6.5) { confLabel = 'Medium Risk';    confColor = '#c17f3a'; }
+    else if (totalConfidence >= 5)   { confLabel = 'High Risk';      confColor = '#c0392b'; }
+    else                             { confLabel = 'Very High Risk'; confColor = '#7b1c1c'; }
+
+    wellbysEl.textContent = fmt(totalWellbys);
+    deprYrsEl.textContent = fmt(depressionYears);
+    confEl.textContent = confLabel;
+    confEl.className = 'impact-number impact-number--conf';
+    confEl.style.color = confColor;
+    bkEl.innerHTML = breakdown
+      .map((b) => `<div class="impact-bk-row"><span>${b.name}</span><span>${fmt(b.wellbys)} WELLBYs</span></div>`)
+      .join('');
+
+    // Outcome cards
+    charities.forEach((c) => {
+      const el = qs(`#outcome-${c.id}`);
+      if (!el) return;
+      const fraction = totalSplits > 0 ? state.splits[c.id] / totalSplits : 0;
+      const allocated = charityAmt * fraction;
+      const outcomes = allocated / c.costPerOutcome;
+      el.textContent = outcomes > 0 ? fmt(outcomes) : '—';
+    });
   }
 
   // ── Split sliders ────────────────────────────────────────────────────────
@@ -543,15 +633,19 @@ import { currencies, defaultCurrency } from '../data/currencies';
     }
 
     let impact = '';
-    if (state.destination !== 'hli') {
+    if (state.destination === 'recommended') {
       const amt = state.amount || 0;
-      let years = state.destination === 'hlf' ? amt * 3 : 0;
-      if (state.destination === 'recommended') {
-        const charityAmt = amt * (1 - state.hliPct / 100);
-        years = charities.reduce((s, c) => s + charityAmt * (state.splits[c.id] / (total || 100)) * c.yearsPerDollar, 0);
-      }
-      if (years > 0) {
-        impact = `<div class="review-row impact-row"><span>Estimated impact</span><span>${years < 10 ? years.toFixed(1) : Math.round(years)} years of depression averted</span></div>`;
+      const charityAmt = amt * (1 - state.hliPct / 100);
+      const totalSplits = Object.values(state.splits).reduce((s, v) => s + v, 0);
+      let totalWellbys = 0;
+      charities.forEach((c) => {
+        const fraction = totalSplits > 0 ? state.splits[c.id] / totalSplits : 0;
+        totalWellbys += (charityAmt * fraction) / c.costPerWellby;
+      });
+      const deprYrs = totalWellbys / 1.3;
+      if (totalWellbys > 0) {
+        const fmt = (n) => n < 1 ? n.toFixed(2) : n < 100 ? n.toFixed(1) : Math.round(n).toLocaleString();
+        impact = `<div class="review-row impact-row"><span>Estimated impact</span><span>${fmt(totalWellbys)} WELLBYs · ${fmt(deprYrs)} yrs depression averted</span></div>`;
       }
     }
 
@@ -1259,23 +1353,23 @@ import { currencies, defaultCurrency } from '../data/currencies';
 
   .charity-tier-badge {
     display: inline-block;
-    font-size: 0.6rem;
+    font-size: 0.6875rem;
     font-weight: 700;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    padding: 2px 6px;
-    border-radius: 4px;
+    padding: 2px 7px;
+    border-radius: 20px;
     line-height: 1.4;
     vertical-align: middle;
   }
 
   .charity-tier-badge--top {
-    background: var(--color-secondary);
+    background: #2d6040;
     color: #ffffff;
   }
 
   .charity-tier-badge--promising {
-    background: var(--color-orange);
+    background: #c17f3a;
     color: #ffffff;
   }
 
@@ -1355,7 +1449,7 @@ import { currencies, defaultCurrency } from '../data/currencies';
     align-items: center;
     justify-content: center;
     gap: 6px;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
   }
 
   .impact-heading {
@@ -1366,8 +1460,23 @@ import { currencies, defaultCurrency } from '../data/currencies';
     color: var(--color-primary);
   }
 
+  .impact-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 4px;
+    margin-bottom: 12px;
+  }
+
+  .impact-metric {
+    padding: 8px 4px;
+  }
+
+  .impact-metric--secondary {
+    border-left: 1px solid var(--color-border-strong);
+  }
+
   .impact-number {
-    font-size: clamp(2rem, 8vw, 3rem);
+    font-size: clamp(1.25rem, 4vw, 1.75rem);
     font-weight: 800;
     color: var(--color-primary);
     line-height: 1;
@@ -1375,9 +1484,13 @@ import { currencies, defaultCurrency } from '../data/currencies';
   }
 
   .impact-desc {
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     color: var(--color-text-secondary);
-    margin-bottom: 12px;
+  }
+
+  .impact-number--conf {
+    font-size: clamp(0.875rem, 2.5vw, 1.0625rem);
+    font-weight: 700;
   }
 
   .impact-breakdown {
@@ -1400,6 +1513,52 @@ import { currencies, defaultCurrency } from '../data/currencies';
     font-size: 0.8125rem;
     color: var(--color-text-secondary);
     text-align: center;
+  }
+
+  /* ── Outcome cards (Step 3) ── */
+  .outcome-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .outcome-card {
+    background: var(--color-primary-light);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    padding: 14px 10px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .outcome-icon {
+    width: 28px;
+    height: 28px;
+    color: var(--color-primary);
+    flex-shrink: 0;
+  }
+
+  .outcome-number {
+    font-size: clamp(1.25rem, 4vw, 1.75rem);
+    font-weight: 800;
+    color: var(--color-primary);
+    line-height: 1;
+  }
+
+  .outcome-label {
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+    line-height: 1.3;
+  }
+
+  @media (max-width: 520px) {
+    .outcome-cards {
+      grid-template-columns: repeat(2, 1fr);
+    }
   }
 
   /* ── Form fields (Step 4) ── */
