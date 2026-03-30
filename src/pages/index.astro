@@ -116,12 +116,42 @@ import { currencies, defaultCurrency } from '../data/currencies';
             >ⓘ</button>
           </div>
           <div class="stepped-selector" role="radiogroup" aria-label="HLI percentage">
-            {[0, 5, 10, 15, 25].map((pct) => (
-              <label class={`step-pill${pct === 10 ? ' recommended' : ''}`}>
-                <input type="radio" name="hli-pct" value={pct} checked={pct === 10} />
-                <span>{pct}%{pct === 10 ? <em> rec.</em> : ''}</span>
+            <label class="step-pill">
+              <input type="radio" name="hli-pct" value={0} />
+              <span>0%</span>
+            </label>
+            <label class="step-pill">
+              <input type="radio" name="hli-pct" value={5} />
+              <span>5%</span>
+            </label>
+            <div class="step-pill-wrapper">
+              <span class="badge-recommended">Recommended</span>
+              <label class="step-pill">
+                <input type="radio" name="hli-pct" value={10} checked />
+                <span>10%</span>
               </label>
-            ))}
+            </div>
+            <label class="step-pill">
+              <input type="radio" name="hli-pct" value={15} />
+              <span>15%</span>
+            </label>
+            <label class="step-pill">
+              <input type="radio" name="hli-pct" value={25} />
+              <span>25%</span>
+            </label>
+          </div>
+          <label class="hli-custom-toggle">
+            <input type="checkbox" id="hliCustomToggle" />
+            <span>Choose a custom %</span>
+          </label>
+          <div class="hli-custom-input" id="hliCustomInput">
+            <input
+              type="number"
+              id="hliCustomPct"
+              min="0"
+              max="100"
+              placeholder="Enter a percentage (0–100)"
+            />
           </div>
         </div>
 
@@ -709,11 +739,37 @@ import { currencies, defaultCurrency } from '../data/currencies';
     });
 
     // Step 3: HLI percentage
+    const hliCustomInput = qs('#hliCustomInput');
+    const hliCustomPct = qs('#hliCustomPct');
+    const hliCustomToggle = qs('#hliCustomToggle');
+
     qsa('[name="hli-pct"]').forEach((radio) => {
       radio.addEventListener('change', () => {
         state.hliPct = Number(radio.value);
         renderImpact();
       });
+    });
+
+    hliCustomToggle.addEventListener('change', () => {
+      if (hliCustomToggle.checked) {
+        hliCustomInput.style.display = 'block';
+        qsa('[name="hli-pct"]').forEach((r) => { r.checked = false; });
+        hliCustomPct.focus();
+      } else {
+        hliCustomInput.style.display = 'none';
+        hliCustomPct.value = '';
+        // restore the 10% default
+        const defaultRadio = qs('[name="hli-pct"][value="10"]');
+        if (defaultRadio) { defaultRadio.checked = true; }
+        state.hliPct = 10;
+        renderImpact();
+      }
+    });
+
+    hliCustomPct.addEventListener('input', () => {
+      const raw = Number(hliCustomPct.value);
+      state.hliPct = Math.min(100, Math.max(0, isNaN(raw) ? 0 : raw));
+      renderImpact();
     });
 
     // Step 3: charity sliders
@@ -1278,11 +1334,26 @@ import { currencies, defaultCurrency } from '../data/currencies';
   .stepped-selector {
     display: flex;
     gap: 6px;
-    flex-wrap: wrap;
+    align-items: flex-end;
   }
 
   .step-pill {
+    flex: 1;
     cursor: pointer;
+    display: block;
+  }
+
+  .step-pill-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .step-pill-wrapper .step-pill {
+    flex: none;
+    width: 100%;
   }
 
   .step-pill input[type="radio"] {
@@ -1292,10 +1363,9 @@ import { currencies, defaultCurrency } from '../data/currencies';
   }
 
   .step-pill span {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    padding: 6px 12px;
+    display: block;
+    text-align: center;
+    padding: 6px 4px;
     border: 1.5px solid var(--color-border);
     border-radius: 20px;
     font-size: 0.875rem;
@@ -1305,6 +1375,8 @@ import { currencies, defaultCurrency } from '../data/currencies';
     transition: all var(--transition);
     cursor: pointer;
     white-space: nowrap;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .step-pill input[type="radio"]:checked + span {
@@ -1313,14 +1385,43 @@ import { currencies, defaultCurrency } from '../data/currencies';
     color: var(--color-white);
   }
 
-  .step-pill.recommended span {
-    border-color: var(--color-primary-dark);
+  .hli-custom-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    cursor: pointer;
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary);
   }
 
-  .step-pill em {
-    font-style: normal;
-    font-size: 0.75rem;
-    opacity: 0.85;
+  .hli-custom-toggle input[type="checkbox"] {
+    accent-color: var(--color-primary);
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .hli-custom-input {
+    display: none;
+    margin-top: 8px;
+  }
+
+  .hli-custom-input input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-xs);
+    font-size: 0.9375rem;
+    color: var(--color-text);
+    background: var(--color-white);
+    box-sizing: border-box;
+  }
+
+  .hli-custom-input input:focus {
+    outline: none;
+    border-color: var(--color-primary);
   }
 
   /* ── Charity sliders (Step 3) ── */
