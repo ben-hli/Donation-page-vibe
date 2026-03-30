@@ -5,6 +5,7 @@ export interface Charity {
   fullDescription: string;
   yearsPerDollar: number;
   website: string;
+  tier: 'top' | 'promising';
 }
 
 export interface DonationOption {
@@ -26,6 +27,7 @@ export const charities: Charity[] = [
       'StrongMinds provides group interpersonal psychotherapy to women suffering from depression in Uganda and Zambia. Their programme has strong evidence of effectiveness and reaches tens of thousands of people each year.',
     yearsPerDollar: 2,
     website: 'https://strongminds.org',
+    tier: 'top',
   },
   {
     id: 'friendship-bench',
@@ -35,6 +37,7 @@ export const charities: Charity[] = [
       'Friendship Bench trains older women to deliver evidence-based problem-solving therapy (PST) for depression in Zimbabwe. Their innovative community model combines local trust with clinical effectiveness.',
     yearsPerDollar: 2,
     website: 'https://www.friendshipbenchzimbabwe.org',
+    tier: 'top',
   },
   {
     id: 'taimaka',
@@ -44,6 +47,7 @@ export const charities: Charity[] = [
       'Taimaka delivers integrated health services including mental health support in underserved communities in West Africa. They are a newer charity with promising evidence and strong cost-effectiveness potential.',
     yearsPerDollar: 1,
     website: 'https://taimaka.org',
+    tier: 'promising',
   },
   {
     id: 'pure-earth',
@@ -53,6 +57,7 @@ export const charities: Charity[] = [
       'Pure Earth identifies and cleans up pollution hotspots in low- and middle-income countries. Lead poisoning and other pollutants cause significant cognitive and mental health harm — addressing them improves wellbeing at scale.',
     yearsPerDollar: 1,
     website: 'https://www.pureearth.org',
+    tier: 'promising',
   },
 ];
 

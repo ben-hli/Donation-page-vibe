@@ -5,21 +5,23 @@
 /* --- Design Tokens --- */
 :root {
   /* Brand colours */
-  --color-primary: #1c5fb8;
-  --color-primary-dark: #1449a0;
-  --color-primary-light: #e8f0fb;
+  --color-primary: #1c3a5e;       /* deep navy */
+  --color-primary-dark: #132840;
+  --color-primary-light: #dce5ef;
+  --color-secondary: #2d6040;     /* forest green */
   --color-white: #ffffff;
-  --color-grey: #b4c3cb;
-  --color-yellow: #ffe655;
-  --color-orange: #fc9736;
+  --color-grey: #cfc8ba;          /* sand */
+  --color-yellow: #e8b84b;        /* sunflower gold — CTA only */
+  --color-orange: #c17f3a;        /* amber — use sparingly */
 
   /* Semantic colours */
-  --color-bg: #f4f7fa;
-  --color-text: #1a2332;
-  --color-text-secondary: #4a5e6e;
-  --color-border: #d8e4eb;
-  --color-border-strong: #b4c3cb;
-  --color-success: #1a8a5a;
+  --color-bg: #eef0f3;
+  --color-bg-card: #ede9e0;       /* oat — cards, alt rows */
+  --color-text: #1c3a5e;          /* deep navy */
+  --color-text-secondary: #4a5a50;
+  --color-border: #e0dbd2;
+  --color-border-strong: #cfc8ba; /* sand */
+  --color-success: #2d6040;       /* forest green */
   --color-error: #c0392b;
 
   /* Typography */
@@ -32,9 +34,9 @@
   --radius-xs: 6px;
 
   /* Shadows */
-  --shadow-sm: 0 1px 3px rgba(28, 95, 184, 0.07);
-  --shadow-md: 0 4px 20px rgba(28, 95, 184, 0.09);
-  --shadow-lg: 0 8px 40px rgba(28, 95, 184, 0.12);
+  --shadow-sm: 0 1px 3px rgba(28, 58, 94, 0.07);
+  --shadow-md: 0 4px 20px rgba(28, 58, 94, 0.09);
+  --shadow-lg: 0 8px 40px rgba(28, 58, 94, 0.12);
 
   /* Transitions */
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
@@ -86,7 +88,7 @@ textarea {
 }
 
 a {
-  color: var(--color-primary);
+  color: var(--color-secondary);
   text-decoration: none;
 }
 
