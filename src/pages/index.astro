@@ -269,6 +269,23 @@ import { currencies, defaultCurrency } from '../data/currencies';
             <div class="outcome-label">Children protected from malnutrition</div>
           </div>
         </div>
+
+        <!-- Putting your impact in context -->
+        <div class="impact-context-card">
+          <div class="impact-header-row">
+            <span class="impact-heading">Putting your impact in context</span>
+          </div>
+          <div class="impact-metrics impact-metrics--two">
+            <div class="impact-metric">
+              <div class="impact-number" id="contextTreasuryValue">—</div>
+              <div class="impact-desc">UK Treasury value of wellbeing created</div>
+            </div>
+            <div class="impact-metric impact-metric--secondary">
+              <div class="impact-number" id="contextStandardCharity">—</div>
+              <div class="impact-desc">equivalent donation to a standard charity</div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- ── Step 4: About you ── -->
@@ -536,9 +553,28 @@ import { currencies, defaultCurrency } from '../data/currencies';
     });
   }
 
+  // ── Exchange rates ────────────────────────────────────────────────────────
+  let fxRates = {};
+
+  async function loadFxRates() {
+    try {
+      const res  = await fetch('https://api.frankfurter.app/latest?base=USD');
+      const data = await res.json();
+      fxRates = data.rates ?? {};
+      fxRates['USD'] = 1;
+    } catch {
+      fxRates = {};
+    }
+  }
+
+  function toUSD(amount) {
+    const rate = fxRates[state.currency];
+    return rate ? amount / rate : amount;
+  }
+
   // ── Impact calculator ────────────────────────────────────────────────────
   function renderImpact() {
-    const amt = state.amount || 0;
+    const amt = toUSD(state.amount || 0);
     let years = 0;
     const wellbysEl = qs('#impactWellbys');
     const deprYrsEl = qs('#impactDepressionYears');
@@ -556,6 +592,10 @@ import { currencies, defaultCurrency } from '../data/currencies';
         const el = qs(`#outcome-${c.id}`);
         if (el) el.textContent = '—';
       });
+      const tvEl = qs('#contextTreasuryValue');
+      const scEl = qs('#contextStandardCharity');
+      if (tvEl) tvEl.textContent = '—';
+      if (scEl) scEl.textContent = '—';
       return;
     }
 
@@ -605,6 +645,14 @@ import { currencies, defaultCurrency } from '../data/currencies';
       const outcomes = allocated / c.costPerOutcome;
       el.textContent = outcomes > 0 ? fmt(outcomes) : '—';
     });
+
+    // Context section — convert USD base values back to selected currency for display
+    const rate = fxRates[state.currency] || 1;
+    const currSym = getCurrencySymbol(state.currency);
+    const tvEl = qs('#contextTreasuryValue');
+    const scEl = qs('#contextStandardCharity');
+    if (tvEl) tvEl.textContent = currSym + fmt(totalWellbys * 22258.36 * rate);
+    if (scEl) scEl.textContent = currSym + fmt(totalWellbys * 17366.90 * rate);
   }
 
   // ── Split sliders ────────────────────────────────────────────────────────
@@ -909,7 +957,8 @@ import { currencies, defaultCurrency } from '../data/currencies';
   }
 
   // ── Init ──────────────────────────────────────────────────────────────────
-  function init() {
+  async function init() {
+    await loadFxRates();
     renderProgress();
     renderNavButtons();
     updateCurrencySymbol();
@@ -917,7 +966,7 @@ import { currencies, defaultCurrency } from '../data/currencies';
     initEvents();
   }
 
-  document.addEventListener('DOMContentLoaded', init);
+  document.addEventListener('DOMContentLoaded', () => init());
 </script>
 
 <style>
@@ -1566,6 +1615,20 @@ import { currencies, defaultCurrency } from '../data/currencies';
     grid-template-columns: 1fr 1fr 1fr;
     gap: 4px;
     margin-bottom: 12px;
+  }
+
+  .impact-metrics--two {
+    grid-template-columns: 1fr 1fr;
+    margin-bottom: 0;
+  }
+
+  .impact-context-card {
+    background: var(--color-primary-light);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius);
+    padding: 20px;
+    text-align: center;
+    margin-top: 12px;
   }
 
   .impact-metric {
