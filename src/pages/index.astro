@@ -3,6 +3,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import { charities, donationOptions } from '../data/charities';
 import { currencies, defaultCurrency } from '../data/currencies';
 import { countries } from '../data/countries';
+
+const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? '';
 ---
 
 <BaseLayout
@@ -372,11 +374,27 @@ import { countries } from '../data/countries';
           </div>
         </div>
 
-        <button type="button" class="btn-complete" id="completeBtn">
-          Complete Donation →
-        </button>
-        <!-- TODO: Wire up to Stripe Checkout. See CLAUDE.md for integration notes. -->
-        <p class="stripe-note">You'll be taken to Stripe's secure checkout to complete your payment.</p>
+        <!-- Payment loading state -->
+        <div id="paymentLoading" class="payment-loading">
+          <div class="spinner"></div>
+          <span>Preparing secure payment…</span>
+        </div>
+
+        <!-- Payment Element + pay button (shown once Stripe is ready) -->
+        <div id="paymentArea" style="display:none;">
+          <div id="payment-element"></div>
+          <div id="paymentError" class="payment-error" style="display:none;" role="alert"></div>
+          <button type="button" class="btn-complete" id="payBtn" disabled>
+            Pay now →
+          </button>
+          <p class="stripe-note">Secured by Stripe · Your card details are never sent to our servers.</p>
+        </div>
+
+        <!-- Error state: shown if the API call fails entirely -->
+        <div id="paymentInitError" class="payment-init-error" style="display:none;" role="alert">
+          <p>We couldn't prepare your payment. Please check your connection and try again.</p>
+          <button type="button" class="btn-retry" id="retryBtn">Try again</button>
+        </div>
       </section>
 
     </div><!-- /.form-card -->
@@ -398,7 +416,7 @@ import { countries } from '../data/countries';
 <!-- ════════════════════════════════════════════
      Client-side script
      ════════════════════════════════════════════ -->
-<script define:vars={{ charities, currencies, defaultCurrency }}>
+<script define:vars={{ charities, currencies, defaultCurrency, stripePublishableKey }}>
   // ── State ──────────────────────────────────────────────────────────────
   const state = {
     step: 1,
@@ -488,7 +506,7 @@ import { countries } from '../data/countries';
 
   function onStepEnter(n) {
     if (n === 3) renderImpact();
-    if (n === 5) renderReview();
+    if (n === 5) { renderReview(); initPaymentElement(); }
   }
 
   // ── Nav buttons ─────────────────────────────────────────────────────────
@@ -718,6 +736,171 @@ import { countries } from '../data/countries';
     `;
   }
 
+  // ── Stripe payment ────────────────────────────────────────────────────────
+  let stripeInstance = null;
+  let stripeElements = null;
+  let paymentElementMounted = false;
+
+  /** Lazy-load Stripe.js from CDN the first time it's needed */
+  function loadStripeJs() {
+    if (window.Stripe) return Promise.resolve(window.Stripe);
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://js.stripe.com/v3/';
+      script.onload = () => resolve(window.Stripe);
+      script.onerror = () => reject(new Error('Failed to load Stripe.js'));
+      document.head.appendChild(script);
+    });
+  }
+
+  /** Reset the payment UI and unmount the Payment Element */
+  function teardownPaymentElement() {
+    if (stripeElements) {
+      const el = stripeElements.getElement('payment');
+      if (el) el.unmount();
+      stripeElements = null;
+      paymentElementMounted = false;
+    }
+    qs('#paymentArea').style.display = 'none';
+    qs('#paymentLoading').style.display = 'flex';
+    qs('#paymentInitError').style.display = 'none';
+    qs('#paymentError').style.display = 'none';
+    qs('#payBtn').disabled = true;
+  }
+
+  /** Called when step 5 is entered — creates intent and mounts Payment Element */
+  async function initPaymentElement() {
+    teardownPaymentElement();
+
+    try {
+      // 1. Lazy-load Stripe.js
+      const StripeConstructor = await loadStripeJs();
+      if (!stripeInstance) stripeInstance = StripeConstructor(stripePublishableKey);
+
+      // 2. Create PaymentIntent or Subscription on the server
+      const response = await fetch('/api/create-payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount:      state.amount,
+          currency:    state.currency,
+          frequency:   state.frequency,
+          donor:       state.donor,
+          destination: state.destination,
+          splits:      state.splits,
+          hliPct:      state.hliPct,
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error ?? `Server error ${response.status}`);
+      }
+
+      const { clientSecret } = await response.json();
+
+      // 3. Create Elements instance with HLI brand appearance
+      stripeElements = stripeInstance.elements({
+        clientSecret,
+        appearance: {
+          theme: 'stripe',
+          variables: {
+            colorPrimary:     '#1c3a5e',
+            colorBackground:  '#ffffff',
+            colorText:        '#1c3a5e',
+            colorDanger:      '#c0392b',
+            fontFamily:       'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            borderRadius:     '8px',
+          },
+          rules: {
+            '.Input': {
+              border:     '1.5px solid #e0dbd2',
+              boxShadow:  'none',
+            },
+            '.Input:focus': {
+              border:     '1.5px solid #1c3a5e',
+              boxShadow:  '0 0 0 3px rgba(28,58,94,0.1)',
+            },
+            '.Label': {
+              color:      '#4a5a50',
+              fontSize:   '0.875rem',
+              fontWeight: '500',
+            },
+          },
+        },
+      });
+
+      // 4. Mount the Payment Element
+      const paymentElement = stripeElements.create('payment', {
+        layout: { type: 'tabs', defaultCollapsed: false },
+        wallets: { applePay: 'auto', googlePay: 'auto' },
+      });
+
+      qs('#payment-element').innerHTML = '';
+      paymentElement.mount('#payment-element');
+      paymentElementMounted = true;
+
+      // Enable Pay button once element is ready
+      paymentElement.on('ready', () => {
+        qs('#payBtn').disabled = false;
+        qs('#paymentLoading').style.display = 'none';
+        qs('#paymentArea').style.display = 'block';
+      });
+
+      // Clear inline errors when user edits payment details
+      paymentElement.on('change', (event) => {
+        if (event.complete) {
+          qs('#paymentError').style.display = 'none';
+          qs('#paymentError').textContent = '';
+        }
+      });
+
+    } catch (err) {
+      console.error('Payment init error:', err.message);
+      qs('#paymentLoading').style.display = 'none';
+      qs('#paymentInitError').style.display = 'block';
+    }
+  }
+
+  /** Called when the Pay button is clicked */
+  async function submitPayment() {
+    if (!stripeInstance || !stripeElements) return;
+
+    const payBtn  = qs('#payBtn');
+    const errorEl = qs('#paymentError');
+
+    payBtn.disabled    = true;
+    payBtn.textContent = 'Processing…';
+    errorEl.style.display = 'none';
+
+    const { error } = await stripeInstance.confirmPayment({
+      elements: stripeElements,
+      confirmParams: {
+        return_url: `${window.location.origin}/success`,
+        payment_method_data: {
+          billing_details: {
+            name:  `${state.donor.firstName} ${state.donor.lastName}`.trim(),
+            email: state.donor.email,
+          },
+        },
+      },
+      // Cards & wallets complete inline; redirect methods use return_url
+      redirect: 'if_required',
+    });
+
+    if (error) {
+      errorEl.textContent = (error.type === 'card_error' || error.type === 'validation_error')
+        ? error.message
+        : 'An unexpected error occurred. Please try again.';
+      errorEl.style.display = 'block';
+      payBtn.disabled    = false;
+      payBtn.textContent = 'Pay now →';
+    } else {
+      // Inline success (card / wallet — no redirect needed)
+      window.location.href = '/success';
+    }
+  }
+
   // ── Event listeners ───────────────────────────────────────────────────────
   function initEvents() {
     // Step 1: destination
@@ -846,6 +1029,7 @@ import { countries } from '../data/countries';
 
     // Back / Next
     qs('#btnBack').addEventListener('click', () => {
+      if (state.step === 5) teardownPaymentElement();
       const prev = prevStep();
       if (prev) goToStep(prev);
     });
@@ -860,10 +1044,11 @@ import { countries } from '../data/countries';
       if (next) goToStep(next);
     });
 
-    // Complete donation (placeholder)
-    qs('#completeBtn').addEventListener('click', () => {
-      alert('Stripe integration pending — see CLAUDE.md for implementation notes.');
-    });
+    // Pay button
+    qs('#payBtn').addEventListener('click', () => submitPayment());
+
+    // Retry button (shown if API call fails)
+    qs('#retryBtn').addEventListener('click', () => initPaymentElement());
 
     // Prevent info-btn clicks inside option-card labels from triggering radio selection
     qsa('.option-card .info-btn').forEach((btn) => {
@@ -1934,6 +2119,77 @@ import { countries } from '../data/countries';
 
   :global(.shake) {
     animation: shake 0.45s var(--ease);
+  }
+
+  /* ── Payment Element UI (Step 5) ── */
+  .payment-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 32px 0;
+    color: var(--color-text-secondary);
+    font-size: 0.9375rem;
+  }
+
+  .spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--color-border);
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    flex-shrink: 0;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  #payment-element {
+    margin-bottom: 16px;
+  }
+
+  .payment-error {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    font-size: 0.875rem;
+    color: var(--color-error);
+    margin-bottom: 16px;
+  }
+
+  .payment-init-error {
+    text-align: center;
+    padding: 24px 0;
+    color: var(--color-text-secondary);
+    font-size: 0.9375rem;
+  }
+
+  .payment-init-error p {
+    margin-bottom: 12px;
+  }
+
+  .btn-retry {
+    padding: 10px 24px;
+    background: var(--color-primary);
+    color: var(--color-white);
+    border-radius: 10px;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--transition);
+  }
+
+  .btn-retry:hover {
+    background: var(--color-primary-dark);
+  }
+
+  .btn-complete:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
   }
 
   /* ── Responsive ── */

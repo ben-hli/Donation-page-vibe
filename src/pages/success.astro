@@ -1,0 +1,150 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="Thank you | Happier Lives Institute"
+  description="Your donation to the Happier Lives Institute has been received."
+>
+  <main class="page">
+
+    <header class="page-header">
+      <a href="https://happierlivesinstitute.org" target="_blank" rel="noopener" aria-label="Happier Lives Institute homepage">
+        <img src="/images/hli-logo.png" alt="Happier Lives Institute" class="logo" width="160" height="48" />
+      </a>
+      <p class="header-subtitle">Donation Portal</p>
+    </header>
+
+    <div class="form-card" id="successCard">
+      <div class="success-icon" aria-hidden="true">✓</div>
+      <h1 class="success-title">Thank you for your donation</h1>
+      <p class="success-body">
+        Your payment has been received. A receipt has been sent to your email address.
+      </p>
+      <p class="success-body">
+        Your generosity helps fund life-changing mental health interventions and
+        HLI's research into the most effective ways to improve global wellbeing.
+      </p>
+      <a href="/" class="btn-home">Make another donation →</a>
+    </div>
+
+    <!-- Shown if Stripe redirected here with a failed status -->
+    <div class="form-card" id="failedCard" hidden>
+      <div class="failed-icon" aria-hidden="true">✕</div>
+      <h1 class="success-title">Payment not completed</h1>
+      <p class="success-body">
+        Your payment was not processed. No money has been taken from your account.
+      </p>
+      <a href="/" class="btn-home">← Try again</a>
+    </div>
+
+  </main>
+</BaseLayout>
+
+<script>
+  // Stripe appends ?redirect_status=succeeded|failed after redirect-based payments
+  const params = new URLSearchParams(window.location.search);
+  const status = params.get('redirect_status');
+
+  if (status === 'failed' || status === 'canceled') {
+    document.getElementById('successCard').setAttribute('hidden', '');
+    document.getElementById('failedCard').removeAttribute('hidden');
+  }
+</script>
+
+<style>
+  .page {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 24px 16px 0;
+  }
+
+  .page-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+
+  .logo {
+    height: 40px;
+    width: auto;
+    object-fit: contain;
+  }
+
+  .header-subtitle {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    border-left: 1px solid var(--color-border);
+    padding-left: 12px;
+  }
+
+  .form-card {
+    background: var(--color-white);
+    border-radius: 16px;
+    box-shadow: var(--shadow-md);
+    padding: 48px 36px;
+    text-align: center;
+  }
+
+  .success-icon {
+    width: 64px;
+    height: 64px;
+    background: #2d6040;
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 0 auto 24px;
+  }
+
+  .failed-icon {
+    width: 64px;
+    height: 64px;
+    background: var(--color-error, #c0392b);
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 0 auto 24px;
+  }
+
+  .success-title {
+    font-size: clamp(1.25rem, 3vw, 1.625rem);
+    font-weight: 700;
+    color: var(--color-text);
+    margin-bottom: 16px;
+    line-height: 1.25;
+  }
+
+  .success-body {
+    font-size: 0.9375rem;
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+    margin-bottom: 12px;
+  }
+
+  .btn-home {
+    display: inline-block;
+    margin-top: 24px;
+    padding: 12px 28px;
+    background: var(--color-primary);
+    color: var(--color-white);
+    border-radius: 10px;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.2s;
+  }
+
+  .btn-home:hover {
+    background: var(--color-primary-dark);
+    transform: translateY(-1px);
+  }
+</style>
