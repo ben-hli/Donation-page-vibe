@@ -66,8 +66,11 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
         <h2 id="step2-title" class="step-title">How much would you like to give?</h2>
 
         <div class="freq-toggle" role="group" aria-label="Donation frequency">
-          <button type="button" class="freq-btn active" data-freq="one-off">One-time</button>
-          <button type="button" class="freq-btn" data-freq="monthly">Monthly</button>
+          <button type="button" class="freq-btn" data-freq="one-off">One-time</button>
+          <button type="button" class="freq-btn active freq-btn-pledge" data-freq="monthly">
+            <span class="badge-recommended freq-btn-sticker">Recommended</span>
+            Pledge
+          </button>
         </div>
 
         <div class="amount-row">
@@ -421,7 +424,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   const state = {
     step: 1,
     destination: /** @type {'hlf'|'recommended'|'hli'|null} */ (null),
-    frequency: 'one-off',
+    frequency: 'monthly',
     currency: defaultCurrency,
     amount: null,
     hliPct: 10,
@@ -1415,13 +1418,15 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     display: flex;
     gap: 0;
     margin-bottom: 20px;
+    margin-top: 10px;
     border: 1.5px solid var(--color-border);
     border-radius: var(--radius-sm);
-    overflow: hidden;
+    overflow: visible;
     width: fit-content;
   }
 
   .freq-btn {
+    position: relative;
     padding: 8px 20px;
     font-size: 0.9rem;
     font-weight: 500;
@@ -1432,9 +1437,26 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     cursor: pointer;
   }
 
+  .freq-btn:first-child {
+    border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  }
+
+  .freq-btn:last-child {
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  }
+
   .freq-btn.active {
     background: var(--color-primary);
     color: var(--color-white);
+  }
+
+  .freq-btn-sticker {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    transform: rotate(8deg);
+    white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
   }
 
   /* ── Amount row (Step 2) ── */
