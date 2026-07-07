@@ -67,42 +67,74 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 
         <div class="freq-toggle" role="group" aria-label="Donation frequency">
           <button type="button" class="freq-btn" data-freq="one-off">One-time</button>
-          <button type="button" class="freq-btn active freq-btn-pledge" data-freq="monthly">
+          <button type="button" class="freq-btn" data-freq="monthly">Monthly</button>
+          <button type="button" class="freq-btn active freq-btn-pledge" data-freq="pledge">
             <span class="badge-recommended freq-btn-sticker">Recommended</span>
             Pledge
           </button>
         </div>
 
-        <div class="amount-row">
-          <div class="currency-wrapper">
-            <select id="currency" aria-label="Currency">
-              {currencies.map((c) => (
-                <option value={c.code} selected={c.code === defaultCurrency}>
-                  {c.code} {c.symbol}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div class="amount-input-wrapper">
-            <span class="amount-symbol" id="currencySymbol">$</span>
-            <input
-              type="number"
-              id="amount"
-              placeholder="0"
-              min="1"
-              step="1"
-              aria-label="Donation amount"
-            />
-          </div>
+        <div class="currency-wrapper">
+          <select id="currency" aria-label="Currency">
+            {currencies.map((c) => (
+              <option value={c.code} selected={c.code === defaultCurrency}>
+                {c.code} {c.symbol}
+              </option>
+            ))}
+          </select>
         </div>
 
-        <div class="preset-amounts" aria-label="Preset amounts">
-          {[25, 50, 100, 250, 500, 1000].map((n) => (
-            <button type="button" class="preset-btn" data-amount={n}>{n}</button>
-          ))}
+        <div id="manualAmountGroup" style="display:none;">
+          <div class="amount-row">
+            <div class="amount-input-wrapper">
+              <span class="amount-symbol" id="currencySymbol">$</span>
+              <input
+                type="number"
+                id="amount"
+                placeholder="0"
+                min="1"
+                step="1"
+                aria-label="Donation amount"
+              />
+            </div>
+          </div>
+
+          <div class="preset-amounts" aria-label="Preset amounts">
+            {[25, 50, 100, 250, 500, 1000].map((n) => (
+              <button type="button" class="preset-btn" data-amount={n}>{n}</button>
+            ))}
+          </div>
+
+          <p class="amount-note" id="amountNote"></p>
         </div>
 
-        <p class="amount-note" id="amountNote"></p>
+        <div id="pledgeCalculator">
+          <div class="amount-row">
+            <div class="amount-input-wrapper">
+              <span class="amount-symbol" id="pledgeCurrencySymbol">$</span>
+              <input
+                type="number"
+                id="pledgeIncome"
+                placeholder="Annual income"
+                min="1"
+                step="1"
+                aria-label="Annual income"
+              />
+            </div>
+          </div>
+
+          <p class="pledge-pct-label">What % of your income would you like to pledge?</p>
+          <div class="stepped-selector" role="radiogroup" aria-label="Pledge percentage">
+            {[1, 3, 5, 10].map((pct) => (
+              <label class="step-pill">
+                <input type="radio" name="pledge-pct" value={pct} />
+                <span>{pct}%</span>
+              </label>
+            ))}
+          </div>
+
+          <p class="pledge-result" id="pledgeResult"></p>
+        </div>
       </section>
 
       <!-- ── Step 3: Split (Recommended Charities only) ── -->
@@ -424,9 +456,11 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   const state = {
     step: 1,
     destination: /** @type {'hlf'|'recommended'|'hli'|null} */ (null),
-    frequency: 'monthly',
+    frequency: 'pledge',
     currency: defaultCurrency,
     amount: null,
+    pledgeIncome: null,
+    pledgePct: null,
     hliPct: 10,
     splits: Object.fromEntries(charities.map((c) => [c.id, 0])),
     donor: { firstName: '', lastName: '', email: '', country: '', giftAid: false, anonymous: false },
@@ -546,6 +580,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 
   function updateCurrencySymbol() {
     qs('#currencySymbol').textContent = getCurrencySymbol(state.currency);
+    qs('#pledgeCurrencySymbol').textContent = getCurrencySymbol(state.currency);
     renderPresetLabels();
   }
 
@@ -700,7 +735,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
       : state.destination === 'hli'
       ? 'Happier Lives Institute'
       : 'Recommended Charities';
-    const freq = state.frequency === 'monthly' ? '/month' : ' one-time';
+    const freq = state.frequency !== 'one-off' ? '/month' : ' one-time';
     const total = Object.values(state.splits).reduce((s, v) => s + v, 0);
 
     let splits = '';
@@ -730,9 +765,14 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
       }
     }
 
+    const pledgeRow = state.frequency === 'pledge' && state.pledgeIncome && state.pledgePct
+      ? `<div class="review-row"><span>Pledge</span><span>${state.pledgePct}% of ${sym}${state.pledgeIncome.toLocaleString()}/yr</span></div>`
+      : '';
+
     qs('#reviewSummary').innerHTML = `
       <div class="review-row"><span>Giving to</span><span>${dest}</span></div>
       <div class="review-row"><span>Amount</span><span>${sym}${state.amount}${freq}</span></div>
+      ${pledgeRow}
       ${splits}
       ${impact}
       ${state.donor.giftAid ? '<div class="review-row"><span>Gift Aid</span><span>✓ Claimed</span></div>' : ''}
@@ -785,13 +825,15 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount:      state.amount,
-          currency:    state.currency,
-          frequency:   state.frequency,
-          donor:       state.donor,
-          destination: state.destination,
-          splits:      state.splits,
-          hliPct:      state.hliPct,
+          amount:       state.amount,
+          currency:     state.currency,
+          frequency:    state.frequency,
+          pledgeIncome: state.pledgeIncome,
+          pledgePct:    state.pledgePct,
+          donor:        state.donor,
+          destination:  state.destination,
+          splits:       state.splits,
+          hliPct:       state.hliPct,
         }),
       });
 
@@ -922,6 +964,11 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
         qsa('.freq-btn').forEach((b) => b.classList.remove('active'));
         btn.classList.add('active');
         state.frequency = btn.dataset.freq;
+        const isPledge = state.frequency === 'pledge';
+        qs('#pledgeCalculator').style.display = isPledge ? 'block' : 'none';
+        qs('#manualAmountGroup').style.display = isPledge ? 'none' : 'block';
+        state.amount = null;
+        renderNavButtons();
       });
     });
 
@@ -951,6 +998,33 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
         qsa('.preset-btn').forEach((b) => b.classList.remove('active'));
         btn.classList.add('active');
         renderNavButtons();
+      });
+    });
+
+    // Step 2: pledge calculator
+    function updatePledgeAmount() {
+      const income = state.pledgeIncome;
+      const pct = state.pledgePct;
+      if (income && pct) {
+        state.amount = Math.round((income * pct / 100 / 12) * 100) / 100;
+        qs('#pledgeResult').textContent =
+          `That's ${getCurrencySymbol(state.currency)}${state.amount.toLocaleString()} per month.`;
+      } else {
+        state.amount = null;
+        qs('#pledgeResult').textContent = '';
+      }
+      renderNavButtons();
+    }
+
+    qs('#pledgeIncome').addEventListener('input', (e) => {
+      state.pledgeIncome = e.target.value ? Number(e.target.value) : null;
+      updatePledgeAmount();
+    });
+
+    qsa('[name="pledge-pct"]').forEach((radio) => {
+      radio.addEventListener('change', () => {
+        state.pledgePct = Number(radio.value);
+        updatePledgeAmount();
       });
     });
 
@@ -1452,10 +1526,12 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 
   .freq-btn-sticker {
     position: absolute;
-    top: -10px;
-    right: -10px;
+    top: -9px;
+    right: -18px;
     transform: rotate(8deg);
     white-space: nowrap;
+    font-size: 0.5625rem;
+    padding: 1px 5px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
   }
 
@@ -1546,6 +1622,21 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     background: var(--color-primary);
     border-color: var(--color-primary);
     color: var(--color-white);
+  }
+
+  /* ── Pledge calculator (Step 2) ── */
+  .pledge-pct-label {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    margin-bottom: 10px;
+  }
+
+  .pledge-result {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-top: 16px;
+    min-height: 1.4em;
   }
 
   /* ── HLI contribution card (Step 3) ── */
