@@ -1,0 +1,2881 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { charities, donationOptions } from '../data/charities';
+import { currencies, defaultCurrency } from '../data/currencies';
+import { countries } from '../data/countries';
+
+const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? '';
+---
+
+<BaseLayout
+  title="Donate | Happier Lives Institute"
+  description="Give to the world's most cost-effective wellbeing charities. Choose the Happier Lives Fund or split your donation between our recommended charities."
+>
+  <main class="page">
+
+    <!-- Header -->
+    <header class="page-header">
+      <a href="https://happierlivesinstitute.org" target="_blank" rel="noopener" aria-label="Happier Lives Institute homepage">
+        <img src="/images/hli-logo-long.png" alt="Happier Lives Institute" class="logo" width="320" height="36" />
+      </a>
+    </header>
+
+    <!-- Progress bar (rendered by JS) -->
+    <nav class="progress-nav" id="progressNav" aria-label="Donation steps"></nav>
+
+    <!-- Form card -->
+    <div class="form-card">
+
+      <!-- ── Step 1: Destination ── -->
+      <section class="step active" id="step-1" aria-labelledby="step1-title">
+        <h2 id="step1-title" class="step-title">Where would you like to give?</h2>
+        <p class="step-desc">Each option reflects HLI's latest research on wellbeing impact.</p>
+
+        <div class="option-list" role="radiogroup" aria-labelledby="step1-title">
+          {donationOptions.map((opt) => (
+            <label class="option-card" for={`dest-${opt.id}`}>
+              <input
+                type="radio"
+                id={`dest-${opt.id}`}
+                name="destination"
+                value={opt.id}
+                class="option-radio"
+              />
+              <div class="option-body">
+                <div class="option-header-row">
+                  <span class="option-name">{opt.name}</span>
+                  {opt.recommended && <span class="badge-recommended">Recommended</span>}
+                  <button
+                    type="button"
+                    class="info-btn"
+                    aria-label={`More about ${opt.name}`}
+                    data-tooltip={opt.description}
+                  >ⓘ</button>
+                </div>
+                <p class="option-tagline">{opt.tagline}</p>
+              </div>
+              <span class="option-check" aria-hidden="true">✓</span>
+            </label>
+          ))}
+        </div>
+      </section>
+
+      <!-- ── Step 2: Amount ── -->
+      <section class="step" id="step-2" aria-labelledby="step2-title">
+        <h2 id="step2-title" class="step-title">How much would you like to give?</h2>
+
+        <div class="freq-toggle" role="group" aria-label="Donation frequency">
+          <button type="button" class="freq-btn" data-freq="one-off">One-time</button>
+          <button type="button" class="freq-btn active" data-freq="monthly">
+            <span class="badge-recommended freq-btn-sticker">Most impactful</span>
+            Monthly
+          </button>
+          <!-- Pledge option temporarily disabled — code kept for later re-enable -->
+          <button type="button" class="freq-btn freq-btn-pledge" data-freq="pledge" style="display:none;">
+            Pledge
+          </button>
+        </div>
+
+        <button type="button" class="pledge-redirect-link" id="pledgeRedirectLink">
+          Want to give a percentage of your income? Take a pledge!
+        </button>
+
+        <div class="currency-wrapper">
+          <select id="currency" aria-label="Currency">
+            {currencies.map((c) => (
+              <option value={c.code} selected={c.code === defaultCurrency}>
+                {c.code} {c.symbol}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div id="manualAmountGroup">
+          <div class="amount-row">
+            <div class="amount-input-wrapper">
+              <span class="amount-symbol" id="currencySymbol">$</span>
+              <input
+                type="number"
+                id="amount"
+                placeholder="0"
+                min="1"
+                step="1"
+                aria-label="Donation amount"
+              />
+            </div>
+          </div>
+
+          <div class="preset-amounts" aria-label="Preset amounts" id="presetAmounts" data-freq="monthly">
+            {[10, 25, 50, 100, 250, 500].map((n) => (
+              <button type="button" class="preset-btn" data-amount={n}>{n}</button>
+            ))}
+          </div>
+
+          <p class="amount-note" id="amountNote"></p>
+        </div>
+
+        <div id="pledgeCalculator" style="display:none;">
+          <div class="amount-row">
+            <div class="amount-input-wrapper">
+              <span class="amount-symbol" id="pledgeCurrencySymbol">$</span>
+              <input
+                type="number"
+                id="pledgeIncome"
+                placeholder="Annual income"
+                min="1"
+                step="1"
+                aria-label="Annual income"
+              />
+            </div>
+          </div>
+
+          <p class="pledge-pct-label">What % of your income would you like to pledge?</p>
+          <div class="stepped-selector" role="radiogroup" aria-label="Pledge percentage">
+            {[1, 3, 5, 10].map((pct) => (
+              <label class="step-pill">
+                <input type="radio" name="pledge-pct" value={pct} />
+                <span>{pct}%</span>
+              </label>
+            ))}
+          </div>
+
+          <p class="pledge-result" id="pledgeResult"></p>
+        </div>
+      </section>
+
+      <!-- ── Step 3: Split (Recommended Charities only) ── -->
+      <section class="step" id="step-3" aria-labelledby="step3-title">
+        <h2 id="step3-title" class="step-title">How would you like to split your donation?</h2>
+        <p class="step-desc">Adjust the sliders to divide your gift between the charities.</p>
+
+        <!-- HLI contribution stepped selector -->
+        <div class="hli-contrib-card">
+          <div class="hli-contrib-header">
+            <span class="hli-contrib-label">Contribution to HLI's research</span>
+            <button
+              type="button"
+              class="info-btn"
+              aria-label="More about the HLI contribution"
+              data-tooltip="The Happier Lives Institute is on a mission to put wellbeing at the heart of decision making. We have big dreams to do more research, evaluate more charities and build better infrastructure for our donors, but currently we don't have the funding to achieve all our goals"
+            >ⓘ</button>
+          </div>
+          <div class="stepped-selector" role="radiogroup" aria-label="HLI percentage">
+            <label class="step-pill">
+              <input type="radio" name="hli-pct" value={0} />
+              <span>0%</span>
+            </label>
+            <label class="step-pill">
+              <input type="radio" name="hli-pct" value={5} />
+              <span>5%</span>
+            </label>
+            <div class="step-pill-wrapper">
+              <span class="badge-recommended">Recommended</span>
+              <label class="step-pill">
+                <input type="radio" name="hli-pct" value={10} checked />
+                <span>10%</span>
+              </label>
+            </div>
+            <label class="step-pill">
+              <input type="radio" name="hli-pct" value={15} />
+              <span>15%</span>
+            </label>
+            <label class="step-pill">
+              <input type="radio" name="hli-pct" value={25} />
+              <span>25%</span>
+            </label>
+          </div>
+          <label class="hli-custom-toggle">
+            <input type="checkbox" id="hliCustomToggle" />
+            <span>Choose a custom %</span>
+          </label>
+          <div class="hli-custom-input" id="hliCustomInput">
+            <input
+              type="number"
+              id="hliCustomPct"
+              min="0"
+              max="100"
+              placeholder="Enter a percentage (0–100)"
+            />
+          </div>
+          <p class="hli-contrib-subnote">
+            According to our estimates, for every $9.50 HLI spent on research and operations in 2025 we averted a year of depression. This is over 3x more effective than our top charity StrongMinds!
+          </p>
+          <p class="hli-contrib-subnote hli-contrib-fee-note">
+            This contribution is charged in addition to your donation and does not reduce the amount your chosen charities receive.
+          </p>
+        </div>
+
+        <button type="button" class="hlf-split-btn" id="hlfSplitBtn">HLF Split</button>
+
+        <!-- Charity split sliders -->
+        <div class="charity-splits" id="charitySplits">
+          {charities.map((c, i) => (
+            <div class="charity-slider-row" data-charity-id={c.id}>
+              <div class="charity-slider-header">
+                <div class="charity-info">
+                  <span class="charity-name">{c.name}</span>
+                  <span class={`charity-tier-badge charity-tier-badge--${c.tier}`}>
+                    {c.tier === 'top' ? 'Top Charity' : 'Promising'}
+                  </span>
+                  <button
+                    type="button"
+                    class="info-btn"
+                    aria-label={`More about ${c.name}`}
+                    data-tooltip={c.fullDescription}
+                  >ⓘ</button>
+                </div>
+                <span class="charity-pct-label" id={`pct-${c.id}`}>{Math.round(c.defaultSplitPct)}%</span>
+                <button
+                  type="button"
+                  class="charity-lock-btn"
+                  id={`lock-${c.id}`}
+                  aria-pressed="false"
+                  aria-label={`Lock ${c.name} percentage`}
+                >
+                  <svg class="charity-lock-icon charity-lock-icon--open" aria-hidden="true" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor"/>
+                    <path d="M8 11V7a4 4 0 0 1 7.5-1.94" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+                  </svg>
+                  <svg class="charity-lock-icon charity-lock-icon--closed" aria-hidden="true" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor"/>
+                    <path d="M8 11V7a4 4 0 1 1 8 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+                  </svg>
+                  <span class="charity-lock-label">Lock</span>
+                </button>
+              </div>
+              <input
+                type="range"
+                class="charity-range"
+                id={`range-${c.id}`}
+                min="0"
+                max="100"
+                value={Math.round(c.defaultSplitPct)}
+                step="1"
+                aria-label={`${c.name} percentage`}
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow={Math.round(c.defaultSplitPct)}
+              />
+            </div>
+          ))}
+        </div>
+
+        <div class="split-total" id="splitTotal">
+          <span>Total: </span><span id="splitTotalPct">100%</span>
+          <span class="split-total-note" id="splitTotalNote"></span>
+        </div>
+
+        <!-- Impact calculator -->
+        <div class="impact-card">
+          <div class="impact-header-row">
+            <span class="impact-heading">Estimated impact</span>
+            <button
+              type="button"
+              class="info-btn"
+              aria-label="About this estimate"
+              data-tooltip="WELLBYs (Wellbeing-Adjusted Life Years) measure the wellbeing impact of your donation using HLI's cost-per-WELLBY estimates. Depression years averted = WELLBYs ÷ 1.3. Confidence score reflects the depth and quality of evidence behind each charity's estimate, weighted by your allocation."
+            >ⓘ</button>
+          </div>
+          <div class="impact-metrics impact-metrics--two">
+            <div class="impact-metric">
+              <div class="impact-number" id="impactWellbys">—</div>
+              <div class="impact-desc">WELLBYs generated</div>
+            </div>
+            <div class="impact-metric impact-metric--secondary">
+              <div class="impact-number" id="impactDepressionYears">—</div>
+              <div class="impact-desc">years of depression averted</div>
+            </div>
+            <!-- Evidence confidence / risk score — disabled for now, code kept for later re-enable
+            <div class="impact-metric impact-metric--secondary">
+              <div class="impact-number" id="impactConfidence">—</div>
+              <div class="impact-desc">evidence confidence</div>
+            </div>
+            -->
+          </div>
+          <div class="impact-breakdown" id="impactBreakdown"></div>
+        </div>
+
+        <!-- Outcome cards -->
+        <div class="outcome-cards">
+          <div class="outcome-card">
+            <svg class="outcome-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <!-- Person -->
+              <circle cx="9" cy="7" r="3"/>
+              <path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
+              <!-- Speech bubble -->
+              <path d="M16 8h4a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-1l-2 2v-2h-1a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/>
+            </svg>
+            <div class="outcome-number" id="outcome-strongminds">—</div>
+            <div class="outcome-label">One-to-one psychotherapy courses funded</div>
+          </div>
+          <div class="outcome-card">
+            <svg class="outcome-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <!-- Three people -->
+              <circle cx="9" cy="7" r="2.5"/>
+              <path d="M4 21v-1.5A3.5 3.5 0 0 1 7.5 16h3A3.5 3.5 0 0 1 14 19.5V21"/>
+              <circle cx="17" cy="8" r="2"/>
+              <path d="M15 21v-1a3 3 0 0 1 3-3h0a3 3 0 0 1 3 3v1"/>
+            </svg>
+            <div class="outcome-number" id="outcome-friendship-bench">—</div>
+            <div class="outcome-label">Group psychotherapy courses funded</div>
+          </div>
+          <div class="outcome-card">
+            <svg class="outcome-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <!-- Shield with checkmark -->
+              <path d="M12 3l8 3.5v5C20 16.4 16.6 21 12 22 7.4 21 4 16.4 4 11.5v-5L12 3z"/>
+              <polyline points="9 12 11 14 15 10"/>
+            </svg>
+            <div class="outcome-number" id="outcome-pure-earth">—</div>
+            <div class="outcome-label">Children protected from lead exposure</div>
+          </div>
+          <div class="outcome-card">
+            <svg class="outcome-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <!-- Bowl with food -->
+              <path d="M4 11h16"/>
+              <path d="M5 11a7 7 0 0 0 14 0"/>
+              <path d="M12 4c-1.5 0-2.5 1-2.5 2s1 1.5 1 2.5"/>
+              <path d="M15 4c1 .5 1.5 1.5 1.5 2.5 0 .8-.4 1.5-1 2"/>
+            </svg>
+            <div class="outcome-number" id="outcome-taimaka">—</div>
+            <div class="outcome-label">Children protected from malnutrition</div>
+          </div>
+        </div>
+
+        <!-- "Putting your impact in context" — disabled for now, code kept for later re-enable
+        <div class="impact-context-card">
+          <div class="impact-header-row">
+            <span class="impact-heading">Putting your impact in context</span>
+          </div>
+          <div class="impact-metrics impact-metrics--two">
+            <div class="impact-metric">
+              <div class="impact-number" id="contextTreasuryValue">—</div>
+              <div class="impact-desc">UK Treasury value of wellbeing created</div>
+            </div>
+            <div class="impact-metric impact-metric--secondary">
+              <div class="impact-number" id="contextStandardCharity">—</div>
+              <div class="impact-desc">equivalent donation to a standard charity</div>
+            </div>
+          </div>
+        </div>
+        -->
+      </section>
+
+      <!-- ── Step 4: About you ── -->
+      <section class="step" id="step-4" aria-labelledby="step4-title">
+        <h2 id="step4-title" class="step-title">About you</h2>
+        <p class="step-desc">We need a few details to process your donation and send you a receipt.</p>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="firstName">First name</label>
+            <input type="text" id="firstName" autocomplete="given-name" required />
+          </div>
+          <div class="form-group">
+            <label for="lastName">Last name</label>
+            <input type="text" id="lastName" autocomplete="family-name" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email address</label>
+          <input type="email" id="email" autocomplete="email" required />
+        </div>
+
+        <div class="form-group country-combobox" id="countryCombobox">
+          <label for="country">Country</label>
+          <input
+            type="text"
+            id="country"
+            role="combobox"
+            aria-expanded="false"
+            aria-autocomplete="list"
+            aria-controls="countryOptions"
+            autocomplete="off"
+            placeholder="Start typing a country…"
+          />
+          <ul class="country-options" id="countryOptions" role="listbox" hidden></ul>
+        </div>
+
+        <div class="form-group">
+          <label for="addressLine1">Address line 1</label>
+          <input type="text" id="addressLine1" autocomplete="address-line1" required />
+          <p class="field-note" id="addressLine1Note" hidden>A UK address is required for Gift Aid.</p>
+        </div>
+
+        <div class="form-group">
+          <label for="addressLine2">Address line 2 <span class="field-optional">(optional)</span></label>
+          <input type="text" id="addressLine2" autocomplete="address-line2" placeholder="Apartment, suite, unit" />
+        </div>
+
+        <div class="form-group">
+          <label for="city">City / Town</label>
+          <input type="text" id="city" autocomplete="address-level2" required />
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="state" id="stateLabel">State / Province / Region <span class="field-optional" id="stateOptionalTag">(optional)</span></label>
+            <input type="text" id="state" autocomplete="address-level1" />
+          </div>
+          <div class="form-group">
+            <label for="postalCode">Postal / ZIP code <span class="field-optional" id="postalOptionalTag">(optional)</span></label>
+            <input type="text" id="postalCode" autocomplete="postal-code" />
+            <p class="field-note" id="postalCodeNote" hidden></p>
+          </div>
+        </div>
+
+        <!-- Gift Aid (UK only) -->
+        <div class="gift-aid-card" id="giftAidSection" hidden>
+          <div class="gift-aid-header">
+            <strong>Boost your donation by 25% at no extra cost</strong>
+          </div>
+          <p class="gift-aid-desc">
+            If you're a UK taxpayer, HLI can reclaim Gift Aid on your donation.
+            This means your gift is worth 25% more at no cost to you.
+          </p>
+          <label class="checkbox-label">
+            <input type="checkbox" id="giftAid" />
+            <span>
+              I am a UK taxpayer and I understand that if I pay less Income Tax and/or Capital
+              Gains Tax in the current tax year than the amount of Gift Aid claimed on all my
+              donations, it is my responsibility to pay any difference.
+            </span>
+          </label>
+        </div>
+      </section>
+
+      <!-- ── Step 5: Review ── -->
+      <section class="step" id="step-5" aria-labelledby="step5-title">
+        <h2 id="step5-title" class="step-title">Review your donation</h2>
+
+        <div class="review-summary" id="reviewSummary">
+          <!-- Populated by JS -->
+        </div>
+
+        <div class="monthly-upsell" id="monthlyUpsell" style="display:none;">
+          <p>Make your donation monthly instead and build a giving habit! You can always alter the amount in our donor platform later</p>
+          <button type="button" class="monthly-upsell-btn" id="monthlyUpsellBtn">Make it monthly</button>
+        </div>
+
+        <!-- Payment loading state -->
+        <div id="paymentLoading" class="payment-loading">
+          <div class="spinner"></div>
+          <span>Preparing secure payment…</span>
+        </div>
+
+        <!-- Payment Element + pay button (shown once Stripe is ready) -->
+        <div id="paymentArea" style="display:none;">
+          <div id="payment-element"></div>
+          <div id="paymentError" class="payment-error" style="display:none;" role="alert"></div>
+          <button type="button" class="btn-complete" id="payBtn" disabled>
+            Pay now →
+          </button>
+          <p class="stripe-note">Secured by Stripe · Your card details are never sent to our servers.</p>
+        </div>
+
+        <!-- Error state: shown if the API call fails entirely -->
+        <div id="paymentInitError" class="payment-init-error" style="display:none;" role="alert">
+          <p>We couldn't prepare your payment. Please check your connection and try again.</p>
+          <button type="button" class="btn-retry" id="retryBtn">Try again</button>
+          <button type="button" class="btn-complete mockup-pay-btn" id="mockupPayBtn">Pay with Stripe (mockup)</button>
+        </div>
+      </section>
+
+    </div><!-- /.form-card -->
+
+    <!-- Navigation -->
+    <div class="form-nav">
+      <button type="button" class="btn btn-back" id="btnBack">← Back</button>
+      <button type="button" class="btn btn-primary" id="btnNext">Continue →</button>
+    </div>
+
+    <!-- Tooltip overlay -->
+    <div class="tooltip-popup" id="tooltipPopup" role="tooltip" aria-live="polite" hidden>
+      <p id="tooltipText"></p>
+    </div>
+
+  </main>
+</BaseLayout>
+
+<!-- ════════════════════════════════════════════
+     Client-side script
+     ════════════════════════════════════════════ -->
+<script define:vars={{ charities, currencies, countries, defaultCurrency, stripePublishableKey }}>
+  // ── State ──────────────────────────────────────────────────────────────
+  const state = {
+    step: 1,
+    destination: /** @type {'hlf'|'recommended'|'hli'|null} */ (null),
+    frequency: 'monthly',
+    currency: defaultCurrency,
+    amount: null,
+    pledgeIncome: null,
+    pledgePct: null,
+    hliPct: 10,
+    splits: Object.fromEntries(charities.map((c) => [c.id, c.defaultSplitPct])),
+    splitLocks: Object.fromEntries(charities.map((c) => [c.id, false])),
+    donor: {
+      firstName: '', lastName: '', email: '',
+      country: '', countryCode: '',
+      addressLine1: '', addressLine2: '', city: '', state: '', postalCode: '',
+      giftAid: false, monthlyUpsellAccepted: false,
+    },
+  };
+
+  // ── Step sequence ───────────────────────────────────────────────────────
+  function getStepSequence() {
+    return state.destination === 'recommended' ? [1, 2, 3, 4, 5] : [1, 2, 4, 5];
+  }
+
+  function stepLabel(n) {
+    return { 1: 'Destination', 2: 'Amount', 3: 'Split', 4: 'Your details', 5: 'Review' }[n];
+  }
+
+  function nextStep() {
+    const seq = getStepSequence();
+    const idx = seq.indexOf(state.step);
+    return idx < seq.length - 1 ? seq[idx + 1] : null;
+  }
+
+  function prevStep() {
+    const seq = getStepSequence();
+    const idx = seq.indexOf(state.step);
+    return idx > 0 ? seq[idx - 1] : null;
+  }
+
+  // ── DOM helpers ─────────────────────────────────────────────────────────
+  function qs(sel) { return document.querySelector(sel); }
+  function qsa(sel) { return document.querySelectorAll(sel); }
+
+  // ── Progress bar ────────────────────────────────────────────────────────
+  function renderProgress() {
+    const nav = qs('#progressNav');
+    const seq = getStepSequence();
+    const pos = seq.indexOf(state.step) + 1;
+    const total = seq.length;
+
+    nav.innerHTML = seq.map((stepNum, i) => {
+      const done = i < seq.indexOf(state.step);
+      const current = stepNum === state.step;
+      const cls = done ? 'prog-step done' : current ? 'prog-step current' : 'prog-step';
+      const label = stepLabel(stepNum);
+      return `
+        <div class="${cls}" aria-current="${current ? 'step' : 'false'}">
+          <div class="prog-circle">${done ? '✓' : i + 1}</div>
+          <div class="prog-label">${label}</div>
+        </div>
+        ${i < seq.length - 1 ? '<div class="prog-line' + (done ? ' done' : '') + '"></div>' : ''}
+      `;
+    }).join('');
+
+    // Screen reader text
+    nav.setAttribute('aria-label', `Step ${pos} of ${total}: ${stepLabel(state.step)}`);
+  }
+
+  // ── Step transitions ────────────────────────────────────────────────────
+  function goToStep(n) {
+    const current = qs(`.step.active`);
+    const next = qs(`#step-${n}`);
+    if (!next || current === next) return;
+
+    current.classList.remove('active');
+    current.classList.add('leaving');
+
+    setTimeout(() => {
+      current.classList.remove('leaving');
+      state.step = n;
+      next.classList.add('entering');
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          next.classList.remove('entering');
+          next.classList.add('active');
+          renderProgress();
+          renderNavButtons();
+          onStepEnter(n);
+        });
+      });
+    }, 220);
+  }
+
+  function onStepEnter(n) {
+    if (n === 2) { fitAmountSymbol('currencySymbol'); fitAmountSymbol('pledgeCurrencySymbol'); }
+    if (n === 3) renderImpact();
+    if (n === 5) { renderReview(); initPaymentElement(); }
+  }
+
+  // ── Nav buttons ─────────────────────────────────────────────────────────
+  function renderNavButtons() {
+    const btnBack = qs('#btnBack');
+    const btnNext = qs('#btnNext');
+    const seq = getStepSequence();
+    const isFirst = seq[0] === state.step;
+    const isLast = seq[seq.length - 1] === state.step;
+
+    btnBack.style.visibility = isFirst ? 'hidden' : 'visible';
+    btnNext.style.display = isLast ? 'none' : 'inline-flex';
+  }
+
+  // ── Address requirements (vary by country) ────────────────────────────────
+  const US_ZIP_RE = /^\d{5}(-\d{4})?$/;
+  const CA_POSTAL_RE = /^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/;
+
+  function addressRequirements(countryCode) {
+    if (countryCode === 'GB') {
+      return { addressLine1: true, city: true, state: false, postalCode: true };
+    }
+    if (countryCode === 'US' || countryCode === 'CA') {
+      return { addressLine1: true, city: true, state: true, postalCode: true };
+    }
+    return { addressLine1: true, city: true, state: false, postalCode: false };
+  }
+
+  function postalCodeFormatValid(countryCode, value) {
+    const trimmed = value.trim();
+    if (countryCode === 'US') return US_ZIP_RE.test(trimmed);
+    if (countryCode === 'CA') return CA_POSTAL_RE.test(trimmed);
+    return true; // formats vary too much elsewhere — don't hard-block
+  }
+
+  // ── Validation ──────────────────────────────────────────────────────────
+  function isStepValid() {
+    switch (state.step) {
+      case 1: return state.destination !== null;
+      case 2: return state.amount !== null && state.amount > 0;
+      case 3: return true; // auto-normalizes on advance
+      case 4: {
+        const { firstName, lastName, email, countryCode, addressLine1, city, state: region, postalCode } = state.donor;
+        if (!firstName.trim() || !lastName.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          return false;
+        }
+        const req = addressRequirements(countryCode);
+        if (req.addressLine1 && !addressLine1.trim()) return false;
+        if (req.city && !city.trim()) return false;
+        if (req.state && !region.trim()) return false;
+        if (req.postalCode) {
+          if (!postalCode.trim()) return false;
+          if (!postalCodeFormatValid(countryCode, postalCode)) return false;
+        }
+        return true;
+      }
+      default: return true;
+    }
+  }
+
+  // ── Currency symbol ──────────────────────────────────────────────────────
+  function getCurrencySymbol(code) {
+    const c = currencies.find((x) => x.code === code);
+    return c ? c.symbol : code;
+  }
+
+  function fitAmountSymbol(symbolId) {
+    const symbolEl = qs(`#${symbolId}`);
+    const input = symbolEl?.parentElement?.querySelector('input');
+    if (!symbolEl || !input) return;
+    input.style.paddingLeft = `${symbolEl.offsetWidth + 22}px`;
+  }
+
+  function updateCurrencySymbol() {
+    qs('#currencySymbol').textContent = getCurrencySymbol(state.currency);
+    qs('#pledgeCurrencySymbol').textContent = getCurrencySymbol(state.currency);
+    fitAmountSymbol('currencySymbol');
+    fitAmountSymbol('pledgeCurrencySymbol');
+    renderPresetLabels();
+  }
+
+  function renderPresetLabels() {
+    qsa('.preset-btn').forEach((btn) => {
+      const amt = Number(btn.dataset.amount);
+      btn.textContent = amt >= 1000 ? `${amt}` : `${amt}`;
+    });
+  }
+
+  // ── Exchange rates ────────────────────────────────────────────────────────
+  let fxRates = {};
+
+  async function loadFxRates() {
+    try {
+      const res  = await fetch('https://api.frankfurter.app/latest?base=USD');
+      const data = await res.json();
+      fxRates = data.rates ?? {};
+      fxRates['USD'] = 1;
+    } catch {
+      fxRates = {};
+    }
+  }
+
+  function toUSD(amount) {
+    const rate = fxRates[state.currency];
+    return rate ? amount / rate : amount;
+  }
+
+  // ── Impact calculator ────────────────────────────────────────────────────
+  function renderImpact() {
+    const amt = toUSD(state.amount || 0);
+    let years = 0;
+    const wellbysEl = qs('#impactWellbys');
+    const deprYrsEl = qs('#impactDepressionYears');
+    const confEl = qs('#impactConfidence');
+    const bkEl = qs('#impactBreakdown');
+
+    if (state.destination !== 'recommended' || amt <= 0) {
+      wellbysEl.textContent = '—';
+      deprYrsEl.textContent = '—';
+      if (confEl) {
+        confEl.textContent = '—';
+        confEl.className = 'impact-number impact-number--conf';
+        confEl.style.color = '';
+      }
+      bkEl.innerHTML = '<p class="impact-hint">Enter an amount to see your impact.</p>';
+      charities.forEach((c) => {
+        const el = qs(`#outcome-${c.id}`);
+        if (el) el.textContent = '—';
+      });
+      const tvEl = qs('#contextTreasuryValue');
+      const scEl = qs('#contextStandardCharity');
+      if (tvEl) tvEl.textContent = '—';
+      if (scEl) scEl.textContent = '—';
+      return;
+    }
+
+    const charityAmt = amt;
+    const totalSplits = Object.values(state.splits).reduce((s, v) => s + v, 0);
+
+    let totalWellbys = 0;
+    let totalConfidence = 0;
+    const breakdown = [];
+
+    charities.forEach((c) => {
+      const fraction = totalSplits > 0 ? state.splits[c.id] / totalSplits : 0;
+      const allocated = charityAmt * fraction;
+      const wellbys = allocated / c.costPerWellby;
+      totalWellbys += wellbys;
+      totalConfidence += c.confidenceScore * fraction;
+      if (wellbys > 0) breakdown.push({ name: c.name, wellbys });
+    });
+
+    const depressionYears = totalWellbys / 1.3;
+
+    const fmt = (n) => n < 1 ? n.toFixed(2) : n < 100 ? n.toFixed(1) : Math.round(n).toLocaleString();
+
+    let confLabel, confClass;
+    let confColor;
+    if (totalConfidence >= 9)        { confLabel = 'Very Low Risk';  confColor = '#1a4d2e'; }
+    else if (totalConfidence > 7.5)  { confLabel = 'Low Risk';       confColor = '#2d6040'; }
+    else if (totalConfidence >= 6.5) { confLabel = 'Medium Risk';    confColor = '#c17f3a'; }
+    else if (totalConfidence >= 5)   { confLabel = 'High Risk';      confColor = '#c0392b'; }
+    else                             { confLabel = 'Very High Risk'; confColor = '#7b1c1c'; }
+
+    wellbysEl.textContent = fmt(totalWellbys);
+    deprYrsEl.textContent = fmt(depressionYears);
+    if (confEl) {
+      confEl.textContent = confLabel;
+      confEl.className = 'impact-number impact-number--conf';
+      confEl.style.color = confColor;
+    }
+    bkEl.innerHTML = breakdown
+      .map((b) => `<div class="impact-bk-row"><span>${b.name}</span><span>${fmt(b.wellbys)} WELLBYs</span></div>`)
+      .join('');
+
+    // Outcome cards
+    charities.forEach((c) => {
+      const el = qs(`#outcome-${c.id}`);
+      if (!el) return;
+      const fraction = totalSplits > 0 ? state.splits[c.id] / totalSplits : 0;
+      const allocated = charityAmt * fraction;
+      const outcomes = allocated / c.costPerOutcome;
+      el.textContent = outcomes > 0 ? fmt(outcomes) : '—';
+    });
+
+    // Context section — convert USD base values back to selected currency for display
+    const rate = fxRates[state.currency] || 1;
+    const currSym = getCurrencySymbol(state.currency);
+    const tvEl = qs('#contextTreasuryValue');
+    const scEl = qs('#contextStandardCharity');
+    if (tvEl) tvEl.textContent = currSym + fmt(totalWellbys * 22258.36 * rate);
+    if (scEl) scEl.textContent = currSym + fmt(totalWellbys * 17366.90 * rate);
+  }
+
+  // ── Split sliders ────────────────────────────────────────────────────────
+  function renderSplitTotals() {
+    const total = Object.values(state.splits).reduce((s, v) => s + v, 0);
+    const el = qs('#splitTotalPct');
+    const note = qs('#splitTotalNote');
+    el.textContent = `${Math.round(total)}%`;
+    if (Math.abs(total - 100) > 0.5) {
+      el.style.color = 'var(--color-error)';
+      note.textContent = `— will auto-adjust to 100% when you continue`;
+    } else {
+      el.style.color = 'var(--color-success)';
+      note.textContent = '';
+    }
+  }
+
+  function normalizeSplits() {
+    const total = Object.values(state.splits).reduce((s, v) => s + v, 0);
+    if (total === 0) {
+      charities.forEach((c) => { state.splits[c.id] = c.defaultSplitPct; });
+    } else if (Math.abs(total - 100) > 0.5) {
+      charities.forEach((c) => { state.splits[c.id] = (state.splits[c.id] / total) * 100; });
+    }
+    // Sync sliders to normalized values
+    charities.forEach((c) => {
+      const slider = qs(`#range-${c.id}`);
+      const label = qs(`#pct-${c.id}`);
+      if (slider) slider.value = String(Math.round(state.splits[c.id]));
+      if (label) label.textContent = `${Math.round(state.splits[c.id])}%`;
+    });
+    renderSplitTotals();
+    renderImpact();
+  }
+
+  // ── Review summary ────────────────────────────────────────────────────────
+  function renderReview() {
+    const sym = getCurrencySymbol(state.currency);
+    const dest = state.destination === 'hlf'
+      ? 'Happier Lives Fund'
+      : state.destination === 'hli'
+      ? 'Happier Lives Institute'
+      : 'Recommended Charities';
+    const freq = state.frequency !== 'one-off' ? '/month' : ' one-time';
+    const total = Object.values(state.splits).reduce((s, v) => s + v, 0);
+
+    let splits = '';
+    let hliFeeRow = '';
+    if (state.destination === 'recommended') {
+      const amt = state.amount || 0;
+      const hliAmount = amt * (state.hliPct / 100);
+      splits = `
+        <div class="review-row"><span>HLI contribution</span><span>${state.hliPct}%</span></div>
+        ${charities.map((c) => `
+          <div class="review-row"><span>${c.name}</span><span>${Math.round(state.splits[c.id] / (total / 100))}%</span></div>
+        `).join('')}
+      `;
+      if (hliAmount > 0) {
+        hliFeeRow = `<div class="review-row"><span>HLI research fee (additional)</span><span>${sym}${hliAmount.toFixed(2)}${freq}</span></div>`;
+      }
+    }
+
+    let impact = '';
+    if (state.destination === 'recommended') {
+      const amt = toUSD(state.amount || 0);
+      const charityAmt = amt;
+      const totalSplits = Object.values(state.splits).reduce((s, v) => s + v, 0);
+      let totalWellbys = 0;
+      charities.forEach((c) => {
+        const fraction = totalSplits > 0 ? state.splits[c.id] / totalSplits : 0;
+        totalWellbys += (charityAmt * fraction) / c.costPerWellby;
+      });
+      const deprYrs = totalWellbys / 1.3;
+      if (totalWellbys > 0) {
+        const fmt = (n) => n < 1 ? n.toFixed(2) : n < 100 ? n.toFixed(1) : Math.round(n).toLocaleString();
+        impact = `<div class="review-row impact-row"><span>Estimated impact</span><span>${fmt(totalWellbys)} WELLBYs · ${fmt(deprYrs)} yrs depression averted</span></div>`;
+      }
+    }
+
+    const pledgeRow = state.frequency === 'pledge' && state.pledgeIncome && state.pledgePct
+      ? `<div class="review-row"><span>Pledge</span><span>${state.pledgePct}% of ${sym}${state.pledgeIncome.toLocaleString()}/yr</span></div>`
+      : '';
+
+    const totalCharge = (state.amount || 0) + ((state.destination === 'recommended') ? (state.amount || 0) * (state.hliPct / 100) : 0);
+
+    const addressParts = [
+      state.donor.addressLine1,
+      state.donor.addressLine2,
+      state.donor.city,
+      state.donor.state,
+      state.donor.postalCode,
+      state.donor.country,
+    ].filter((part) => part && part.trim());
+    const addressDisplay = addressParts.join(', ');
+
+    qs('#reviewSummary').innerHTML = `
+      <div class="review-row"><span>Name</span><span>${state.donor.firstName} ${state.donor.lastName}</span></div>
+      <div class="review-row"><span>Email</span><span>${state.donor.email}</span></div>
+      ${addressDisplay ? `<div class="review-row"><span>Address</span><span>${addressDisplay}</span></div>` : ''}
+      <div class="review-row"><span>Giving to</span><span>${dest}</span></div>
+      <div class="review-row"><span>Amount</span><span>${sym}${state.amount}${freq}</span></div>
+      ${pledgeRow}
+      ${splits}
+      ${hliFeeRow}
+      ${hliFeeRow ? `<div class="review-row review-row--total"><span>Total charge</span><span>${sym}${totalCharge.toFixed(2)}${freq}</span></div>` : ''}
+      ${impact}
+      ${state.donor.giftAid ? '<div class="review-row"><span>Gift Aid</span><span>✓ Claimed</span></div>' : ''}
+    `;
+
+    const upsell = qs('#monthlyUpsell');
+    if (upsell) upsell.style.display = state.frequency === 'one-off' ? 'block' : 'none';
+  }
+
+  // ── Stripe payment ────────────────────────────────────────────────────────
+  let stripeInstance = null;
+  let stripeElements = null;
+  let paymentElementMounted = false;
+
+  /** Lazy-load Stripe.js from CDN the first time it's needed */
+  function loadStripeJs() {
+    if (window.Stripe) return Promise.resolve(window.Stripe);
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://js.stripe.com/v3/';
+      script.onload = () => resolve(window.Stripe);
+      script.onerror = () => reject(new Error('Failed to load Stripe.js'));
+      document.head.appendChild(script);
+    });
+  }
+
+  /** Reset the payment UI and unmount the Payment Element */
+  function teardownPaymentElement() {
+    if (stripeElements) {
+      const el = stripeElements.getElement('payment');
+      if (el) el.unmount();
+      stripeElements = null;
+      paymentElementMounted = false;
+    }
+    qs('#paymentArea').style.display = 'none';
+    qs('#paymentLoading').style.display = 'flex';
+    qs('#paymentInitError').style.display = 'none';
+    qs('#paymentError').style.display = 'none';
+    qs('#payBtn').disabled = true;
+  }
+
+  /** Called when step 5 is entered — creates intent and mounts Payment Element */
+  async function initPaymentElement() {
+    teardownPaymentElement();
+
+    try {
+      // 1. Lazy-load Stripe.js
+      const StripeConstructor = await loadStripeJs();
+      if (!stripeInstance) stripeInstance = StripeConstructor(stripePublishableKey);
+
+      // 2. Create PaymentIntent or Subscription on the server
+      const response = await fetch('/api/create-payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount:       state.amount,
+          currency:     state.currency,
+          frequency:    state.frequency,
+          pledgeIncome: state.pledgeIncome,
+          pledgePct:    state.pledgePct,
+          donor:        state.donor,
+          destination:  state.destination,
+          splits:       state.splits,
+          hliPct:       state.hliPct,
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error ?? `Server error ${response.status}`);
+      }
+
+      const { clientSecret } = await response.json();
+
+      // 3. Create Elements instance with HLI brand appearance
+      stripeElements = stripeInstance.elements({
+        clientSecret,
+        appearance: {
+          theme: 'stripe',
+          variables: {
+            colorPrimary:     '#1c3a5e',
+            colorBackground:  '#ffffff',
+            colorText:        '#1c3a5e',
+            colorDanger:      '#c0392b',
+            fontFamily:       'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            borderRadius:     '8px',
+          },
+          rules: {
+            '.Input': {
+              border:     '1.5px solid #e0dbd2',
+              boxShadow:  'none',
+            },
+            '.Input:focus': {
+              border:     '1.5px solid #1c3a5e',
+              boxShadow:  '0 0 0 3px rgba(28,58,94,0.1)',
+            },
+            '.Label': {
+              color:      '#4a5a50',
+              fontSize:   '0.875rem',
+              fontWeight: '500',
+            },
+          },
+        },
+      });
+
+      // 4. Mount the Payment Element
+      const paymentElement = stripeElements.create('payment', {
+        layout: { type: 'tabs', defaultCollapsed: false },
+        wallets: { applePay: 'auto', googlePay: 'auto' },
+      });
+
+      qs('#payment-element').innerHTML = '';
+      paymentElement.mount('#payment-element');
+      paymentElementMounted = true;
+
+      // Enable Pay button once element is ready
+      paymentElement.on('ready', () => {
+        qs('#payBtn').disabled = false;
+        qs('#paymentLoading').style.display = 'none';
+        qs('#paymentArea').style.display = 'block';
+      });
+
+      // Clear inline errors when user edits payment details
+      paymentElement.on('change', (event) => {
+        if (event.complete) {
+          qs('#paymentError').style.display = 'none';
+          qs('#paymentError').textContent = '';
+        }
+      });
+
+    } catch (err) {
+      console.error('Payment init error:', err.message);
+      qs('#paymentLoading').style.display = 'none';
+      qs('#paymentInitError').style.display = 'block';
+    }
+  }
+
+  /** Called when the Pay button is clicked */
+  async function submitPayment() {
+    if (!stripeInstance || !stripeElements) return;
+
+    const payBtn  = qs('#payBtn');
+    const errorEl = qs('#paymentError');
+
+    payBtn.disabled    = true;
+    payBtn.textContent = 'Processing…';
+    errorEl.style.display = 'none';
+
+    const { error } = await stripeInstance.confirmPayment({
+      elements: stripeElements,
+      confirmParams: {
+        return_url: `${window.location.origin}/success`,
+        payment_method_data: {
+          billing_details: {
+            name:  `${state.donor.firstName} ${state.donor.lastName}`.trim(),
+            email: state.donor.email,
+          },
+        },
+      },
+      // Cards & wallets complete inline; redirect methods use return_url
+      redirect: 'if_required',
+    });
+
+    if (error) {
+      errorEl.textContent = (error.type === 'card_error' || error.type === 'validation_error')
+        ? error.message
+        : 'An unexpected error occurred. Please try again.';
+      errorEl.style.display = 'block';
+      payBtn.disabled    = false;
+      payBtn.textContent = 'Pay now →';
+    } else {
+      // Inline success (card / wallet — no redirect needed)
+      window.location.href = '/success';
+    }
+  }
+
+  // ── Event listeners ───────────────────────────────────────────────────────
+  function initEvents() {
+    // Step 1: destination
+    qsa('[name="destination"]').forEach((radio) => {
+      radio.addEventListener('change', () => {
+        state.destination = radio.value;
+        qsa('.option-card').forEach((c) => c.classList.remove('selected'));
+        radio.closest('.option-card').classList.add('selected');
+        renderNavButtons();
+      });
+    });
+
+    // Step 2: amount presets (differ by frequency)
+    const PRESETS_BY_FREQ = {
+      monthly: { list: [10, 25, 50, 100, 250, 500], default: 50 },
+      'one-off': { list: [25, 50, 100, 250, 500, 1000], default: 100 },
+    };
+
+    function bindPresetButtons() {
+      qsa('.preset-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const amt = Number(btn.dataset.amount);
+          state.amount = amt;
+          qs('#amount').value = String(amt);
+          qsa('.preset-btn').forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          renderNavButtons();
+        });
+      });
+    }
+
+    function renderPresets(freq, opts = {}) {
+      const config = PRESETS_BY_FREQ[freq];
+      if (!config) return;
+      const container = qs('#presetAmounts');
+      container.dataset.freq = freq;
+      container.innerHTML = config.list
+        .map((n) => `<button type="button" class="preset-btn" data-amount="${n}">${n}</button>`)
+        .join('');
+      bindPresetButtons();
+      if (opts.applyDefault) {
+        state.amount = config.default;
+        qs('#amount').value = String(config.default);
+        const match = qs(`.preset-btn[data-amount="${config.default}"]`);
+        if (match) match.classList.add('active');
+      }
+    }
+
+    // Step 2: frequency
+    qsa('.freq-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        qsa('.freq-btn').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.frequency = btn.dataset.freq;
+        const isPledge = state.frequency === 'pledge';
+        qs('#pledgeCalculator').style.display = isPledge ? 'block' : 'none';
+        qs('#manualAmountGroup').style.display = isPledge ? 'none' : 'block';
+        if (!isPledge) {
+          renderPresets(state.frequency, { applyDefault: true });
+        } else {
+          state.amount = null;
+        }
+        renderNavButtons();
+      });
+    });
+
+    // Step 2: pledge redirect link
+    qs('#pledgeRedirectLink').addEventListener('click', () => {
+      qs('.freq-btn-pledge').click();
+    });
+
+    // Step 5: monthly upsell for one-time donors
+    qs('#monthlyUpsellBtn')?.addEventListener('click', () => {
+      state.frequency = 'monthly';
+      state.donor.monthlyUpsellAccepted = true;
+      renderReview();
+      initPaymentElement();
+    });
+
+    // Step 2: currency
+    qs('#currency').addEventListener('change', (e) => {
+      state.currency = e.target.value;
+      updateCurrencySymbol();
+    });
+
+    // Step 2: amount input
+    qs('#amount').addEventListener('input', (e) => {
+      state.amount = e.target.value ? Number(e.target.value) : null;
+      qsa('.preset-btn').forEach((b) => b.classList.remove('active'));
+      if (state.amount) {
+        const match = qs(`.preset-btn[data-amount="${state.amount}"]`);
+        if (match) match.classList.add('active');
+      }
+      renderNavButtons();
+    });
+
+    // Step 2: preset amounts (initial bind + default selection for the default frequency)
+    renderPresets(state.frequency, { applyDefault: true });
+
+    // Step 2: pledge calculator
+    function updatePledgeAmount() {
+      const income = state.pledgeIncome;
+      const pct = state.pledgePct;
+      if (income && pct) {
+        state.amount = Math.round((income * pct / 100 / 12) * 100) / 100;
+        qs('#pledgeResult').textContent =
+          `That's ${getCurrencySymbol(state.currency)}${state.amount.toLocaleString()} per month.`;
+      } else {
+        state.amount = null;
+        qs('#pledgeResult').textContent = '';
+      }
+      renderNavButtons();
+    }
+
+    qs('#pledgeIncome').addEventListener('input', (e) => {
+      state.pledgeIncome = e.target.value ? Number(e.target.value) : null;
+      updatePledgeAmount();
+    });
+
+    qsa('[name="pledge-pct"]').forEach((radio) => {
+      radio.addEventListener('change', () => {
+        state.pledgePct = Number(radio.value);
+        updatePledgeAmount();
+      });
+    });
+
+    // Step 3: HLI percentage
+    const hliCustomInput = qs('#hliCustomInput');
+    const hliCustomPct = qs('#hliCustomPct');
+    const hliCustomToggle = qs('#hliCustomToggle');
+
+    qsa('[name="hli-pct"]').forEach((radio) => {
+      radio.addEventListener('change', () => {
+        state.hliPct = Number(radio.value);
+        renderImpact();
+      });
+    });
+
+    hliCustomToggle.addEventListener('change', () => {
+      if (hliCustomToggle.checked) {
+        hliCustomInput.style.display = 'block';
+        qsa('[name="hli-pct"]').forEach((r) => { r.checked = false; });
+        hliCustomPct.focus();
+      } else {
+        hliCustomInput.style.display = 'none';
+        hliCustomPct.value = '';
+        // restore the 10% default
+        const defaultRadio = qs('[name="hli-pct"][value="10"]');
+        if (defaultRadio) { defaultRadio.checked = true; }
+        state.hliPct = 10;
+        renderImpact();
+      }
+    });
+
+    hliCustomPct.addEventListener('input', () => {
+      const raw = Number(hliCustomPct.value);
+      state.hliPct = Math.min(100, Math.max(0, isNaN(raw) ? 0 : raw));
+      renderImpact();
+    });
+
+    // Step 3: charity sliders — GWWC-style lock & auto-redistribute
+    function syncSliderUI(id) {
+      const slider = qs(`#range-${id}`);
+      const label = qs(`#pct-${id}`);
+      const val = Math.round(state.splits[id]);
+      if (slider) slider.value = String(val);
+      if (label) label.textContent = `${val}%`;
+    }
+
+    function syncLockUI(id) {
+      const btn = qs(`#lock-${id}`);
+      if (!btn) return;
+      const locked = state.splitLocks[id];
+      btn.classList.toggle('locked', locked);
+      btn.setAttribute('aria-pressed', String(locked));
+      btn.querySelector('.charity-lock-label').textContent = locked ? 'Unlock' : 'Lock';
+    }
+
+    function setLock(id, locked) {
+      state.splitLocks[id] = locked;
+      syncLockUI(id);
+    }
+
+    function redistributeSplits(draggedId, draggedVal) {
+      const lockedIds = charities.map((c) => c.id).filter((id) => id !== draggedId && state.splitLocks[id]);
+      const otherIds = charities.map((c) => c.id).filter((id) => id !== draggedId && !state.splitLocks[id]);
+
+      const lockedTotal = lockedIds.reduce((s, id) => s + state.splits[id], 0);
+      const maxForDragged = Math.max(0, 100 - lockedTotal);
+      const val = Math.min(draggedVal, maxForDragged);
+
+      state.splits[draggedId] = val;
+
+      const remaining = Math.max(0, 100 - val - lockedTotal);
+
+      if (otherIds.length === 0) {
+        // Nothing left to absorb the remainder — nothing to do.
+      } else if (otherIds.length === 1) {
+        state.splits[otherIds[0]] = remaining;
+      } else {
+        const otherTotal = otherIds.reduce((s, id) => s + state.splits[id], 0);
+        if (otherTotal > 0) {
+          otherIds.forEach((id) => {
+            state.splits[id] = (state.splits[id] / otherTotal) * remaining;
+          });
+        } else {
+          const share = remaining / otherIds.length;
+          otherIds.forEach((id) => { state.splits[id] = share; });
+        }
+      }
+
+      charities.forEach((c) => syncSliderUI(c.id));
+      renderSplitTotals();
+      renderImpact();
+    }
+
+    charities.forEach((c) => {
+      const slider = qs(`#range-${c.id}`);
+      const lockBtn = qs(`#lock-${c.id}`);
+      if (!slider) return;
+
+      slider.addEventListener('pointerdown', () => {
+        // Grabbing a locked slider unlocks it so the drag can redistribute normally.
+        if (state.splitLocks[c.id]) setLock(c.id, false);
+      });
+
+      slider.addEventListener('input', () => {
+        const unlockedIds = charities.map((ch) => ch.id).filter((id) => !state.splitLocks[id]);
+        const isLastTwoUnlocked = unlockedIds.length <= 2;
+
+        redistributeSplits(c.id, Number(slider.value));
+
+        // Lock the dragged slider once it's set, unless it's one of the last two unlocked sliders.
+        if (!isLastTwoUnlocked) setLock(c.id, true);
+      });
+
+      lockBtn?.addEventListener('click', () => {
+        setLock(c.id, !state.splitLocks[c.id]);
+      });
+    });
+
+    // Step 3: HLF Split quick-set
+    const HLF_SPLIT_PCT = {
+      strongminds: 33,
+      'friendship-bench': 33,
+      'pure-earth': 20,
+      taimaka: 14,
+    };
+    qs('#hlfSplitBtn')?.addEventListener('click', () => {
+      charities.forEach((c) => {
+        state.splits[c.id] = HLF_SPLIT_PCT[c.id] ?? 0;
+        setLock(c.id, false);
+        syncSliderUI(c.id);
+      });
+      renderSplitTotals();
+      renderImpact();
+    });
+
+    // Step 4: donor fields
+    ['firstName', 'lastName', 'email', 'addressLine1', 'addressLine2', 'city', 'state', 'postalCode'].forEach((id) => {
+      qs(`#${id}`)?.addEventListener('input', (e) => {
+        state.donor[id] = e.target.value;
+        renderNavButtons();
+      });
+    });
+
+    function applyCountryRequirements(countryCode) {
+      const req = addressRequirements(countryCode);
+
+      qs('#addressLine1').required = req.addressLine1;
+      qs('#city').required = req.city;
+      qs('#state').required = req.state;
+      qs('#postalCode').required = req.postalCode;
+
+      qs('#stateOptionalTag').hidden = req.state;
+      qs('#postalOptionalTag').hidden = req.postalCode;
+
+      const addressNote = qs('#addressLine1Note');
+      addressNote.hidden = countryCode !== 'GB';
+
+      const postalNote = qs('#postalCodeNote');
+      if (countryCode === 'US') {
+        postalNote.textContent = 'Format: 5 digits, e.g. 94103 (or 94103-1234).';
+        postalNote.hidden = false;
+      } else if (countryCode === 'CA') {
+        postalNote.textContent = 'Format: A1A 1A1.';
+        postalNote.hidden = false;
+      } else {
+        postalNote.hidden = true;
+      }
+
+      const giftAidSection = qs('#giftAidSection');
+      if (countryCode === 'GB') {
+        giftAidSection.removeAttribute('hidden');
+      } else {
+        giftAidSection.setAttribute('hidden', '');
+        qs('#giftAid').checked = false;
+        state.donor.giftAid = false;
+      }
+    }
+
+    // Step 4: country combobox (custom — native <datalist> can't be positioned/styled)
+    const countryInput = qs('#country');
+    const countryList = qs('#countryOptions');
+    let countryActiveIndex = -1;
+    let countryFiltered = [];
+
+    function selectCountry(country) {
+      countryInput.value = country ? country.name : countryInput.value;
+      state.donor.country = countryInput.value;
+      state.donor.countryCode = country ? country.code : '';
+      applyCountryRequirements(state.donor.countryCode);
+      closeCountryList();
+      renderNavButtons();
+    }
+
+    function closeCountryList() {
+      countryList.hidden = true;
+      countryInput.setAttribute('aria-expanded', 'false');
+      countryActiveIndex = -1;
+    }
+
+    function renderCountryList(query) {
+      const q = query.trim().toLowerCase();
+      countryFiltered = q
+        ? countries.filter((c) => c.name.toLowerCase().includes(q))
+        : countries;
+
+      if (!countryFiltered.length) {
+        closeCountryList();
+        return;
+      }
+
+      countryList.innerHTML = countryFiltered
+        .map((c, i) => `<li role="option" data-index="${i}" id="country-opt-${i}">${c.name}</li>`)
+        .join('');
+      countryList.hidden = false;
+      countryInput.setAttribute('aria-expanded', 'true');
+      countryActiveIndex = -1;
+    }
+
+    function highlightCountryOption(index) {
+      qsa('.country-options li').forEach((li) => li.classList.remove('active'));
+      if (index >= 0) {
+        const el = qs(`#country-opt-${index}`);
+        el?.classList.add('active');
+        el?.scrollIntoView({ block: 'nearest' });
+      }
+      countryActiveIndex = index;
+    }
+
+    countryInput.addEventListener('input', (e) => {
+      const typedName = e.target.value;
+      const exactMatch = countries.find((c) => c.name === typedName);
+      state.donor.country = typedName;
+      state.donor.countryCode = exactMatch ? exactMatch.code : '';
+      applyCountryRequirements(state.donor.countryCode);
+      renderNavButtons();
+      renderCountryList(typedName);
+    });
+
+    countryInput.addEventListener('focus', () => {
+      renderCountryList(countryInput.value);
+    });
+
+    countryInput.addEventListener('keydown', (e) => {
+      if (countryList.hidden && e.key !== 'Escape') return;
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        highlightCountryOption(Math.min(countryActiveIndex + 1, countryFiltered.length - 1));
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        highlightCountryOption(Math.max(countryActiveIndex - 1, 0));
+      } else if (e.key === 'Enter') {
+        if (countryActiveIndex >= 0) {
+          e.preventDefault();
+          selectCountry(countryFiltered[countryActiveIndex]);
+        }
+      } else if (e.key === 'Escape') {
+        closeCountryList();
+      }
+    });
+
+    countryList.addEventListener('click', (e) => {
+      const li = e.target.closest('li[data-index]');
+      if (!li) return;
+      selectCountry(countryFiltered[Number(li.dataset.index)]);
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!qs('#countryCombobox').contains(e.target)) closeCountryList();
+    });
+
+    qs('#giftAid').addEventListener('change', (e) => {
+      state.donor.giftAid = e.target.checked;
+    });
+
+    // Back / Next
+    qs('#btnBack').addEventListener('click', () => {
+      if (state.step === 5) teardownPaymentElement();
+      const prev = prevStep();
+      if (prev) goToStep(prev);
+    });
+
+    qs('#btnNext').addEventListener('click', () => {
+      if (!isStepValid()) {
+        highlightErrors();
+        return;
+      }
+      if (state.step === 3) normalizeSplits();
+      const next = nextStep();
+      if (next) goToStep(next);
+    });
+
+    // Pay button
+    qs('#payBtn').addEventListener('click', () => submitPayment());
+
+    // Retry button (shown if API call fails)
+    qs('#retryBtn').addEventListener('click', () => initPaymentElement());
+
+    // Mockup-only bypass — lets reviewers reach /success without live Stripe keys configured
+    qs('#mockupPayBtn')?.addEventListener('click', () => {
+      window.location.href = '/success';
+    });
+
+    // Prevent info-btn clicks inside option-card labels from triggering radio selection
+    qsa('.option-card .info-btn').forEach((btn) => {
+      btn.addEventListener('click', (e) => e.stopPropagation());
+    });
+
+    // Tooltips
+    initTooltips();
+  }
+
+  // ── Tooltips ──────────────────────────────────────────────────────────────
+  function initTooltips() {
+    const popup = qs('#tooltipPopup');
+    const textEl = qs('#tooltipText');
+    let hideTimer;
+
+    function show(btn) {
+      clearTimeout(hideTimer);
+      textEl.textContent = btn.dataset.tooltip;
+      popup.removeAttribute('hidden');
+      const rect = btn.getBoundingClientRect();
+      const scrollY = window.scrollY;
+      popup.style.top = `${rect.bottom + scrollY + 8}px`;
+      popup.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - 300))}px`;
+    }
+
+    function hide() {
+      hideTimer = setTimeout(() => popup.setAttribute('hidden', ''), 150);
+    }
+
+    document.addEventListener('mouseover', (e) => {
+      const btn = e.target.closest('.info-btn[data-tooltip]');
+      if (btn) show(btn);
+      else if (!popup.contains(e.target)) hide();
+    });
+
+    document.addEventListener('focusin', (e) => {
+      const btn = e.target.closest('.info-btn[data-tooltip]');
+      if (btn) show(btn);
+    });
+
+    document.addEventListener('focusout', (e) => {
+      if (!e.relatedTarget?.closest?.('#tooltipPopup')) hide();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') popup.setAttribute('hidden', '');
+    });
+
+    popup.addEventListener('mouseenter', () => clearTimeout(hideTimer));
+    popup.addEventListener('mouseleave', hide);
+  }
+
+  // ── Error highlighting ────────────────────────────────────────────────────
+  function highlightErrors() {
+    if (state.step === 1) {
+      qs('.option-list').classList.add('shake');
+      setTimeout(() => qs('.option-list').classList.remove('shake'), 500);
+    }
+    if (state.step === 2) {
+      qs('#amount').classList.add('error');
+      setTimeout(() => qs('#amount').classList.remove('error'), 2000);
+    }
+    if (state.step === 4) {
+      ['firstName', 'lastName', 'email'].forEach((id) => {
+        const el = qs(`#${id}`);
+        if (!el?.value.trim() || (id === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(el.value))) {
+          el?.classList.add('error');
+          setTimeout(() => el?.classList.remove('error'), 2000);
+        }
+      });
+
+      const req = addressRequirements(state.donor.countryCode);
+      if (req.addressLine1 && !qs('#addressLine1').value.trim()) {
+        qs('#addressLine1').classList.add('error');
+        setTimeout(() => qs('#addressLine1').classList.remove('error'), 2000);
+      }
+      if (req.city && !qs('#city').value.trim()) {
+        qs('#city').classList.add('error');
+        setTimeout(() => qs('#city').classList.remove('error'), 2000);
+      }
+      if (req.state && !qs('#state').value.trim()) {
+        qs('#state').classList.add('error');
+        setTimeout(() => qs('#state').classList.remove('error'), 2000);
+      }
+      if (req.postalCode) {
+        const postalEl = qs('#postalCode');
+        if (!postalEl.value.trim() || !postalCodeFormatValid(state.donor.countryCode, postalEl.value)) {
+          postalEl.classList.add('error');
+          setTimeout(() => postalEl.classList.remove('error'), 2000);
+        }
+      }
+    }
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  async function init() {
+    await loadFxRates();
+    renderProgress();
+    renderNavButtons();
+    updateCurrencySymbol();
+    renderSplitTotals();
+    initEvents();
+  }
+
+  document.addEventListener('DOMContentLoaded', () => init());
+</script>
+
+<style>
+  /* ── Layout ── */
+  .page {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 24px 16px 0;
+  }
+
+  /* ── Header ── */
+  .page-header {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 32px;
+  }
+
+  .logo {
+    height: 36px;
+    width: auto;
+    object-fit: contain;
+  }
+
+  /* ── Progress bar ── */
+  .progress-nav {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0;
+    margin-bottom: 24px;
+  }
+
+  :global(.prog-step) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-width: 60px;
+  }
+
+  :global(.prog-circle) {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    background: var(--color-white);
+    color: var(--color-text-secondary);
+    transition: var(--transition);
+  }
+
+  :global(.prog-step.done .prog-circle) {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-white);
+  }
+
+  :global(.prog-step.current .prog-circle) {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-primary-light);
+  }
+
+  :global(.prog-label) {
+    font-size: 0.6875rem;
+    color: var(--color-text-secondary);
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  :global(.prog-step.current .prog-label) {
+    color: var(--color-primary);
+    font-weight: 600;
+  }
+
+  :global(.prog-line) {
+    flex: 1;
+    height: 2px;
+    background: var(--color-white);
+    margin-top: 15px;
+    min-width: 20px;
+    transition: var(--transition);
+  }
+
+  :global(.prog-line.done) {
+    background: var(--color-primary);
+  }
+
+  /* ── Form card ── */
+  .form-card {
+    background: var(--color-white);
+    border-radius: 16px;
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+  }
+
+  /* ── Steps ── */
+  .step {
+    display: none;
+    opacity: 0;
+    padding: 32px;
+    transform: translateY(6px);
+  }
+
+  .step.active {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.25s var(--ease), transform 0.25s var(--ease);
+  }
+
+  .step.leaving {
+    display: block;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 0.2s var(--ease), transform 0.2s var(--ease);
+  }
+
+  .step.entering {
+    display: block;
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  .step-title {
+    font-size: clamp(1.125rem, 2.5vw, 1.375rem);
+    font-weight: 700;
+    color: var(--color-text);
+    margin-bottom: 6px;
+    line-height: 1.25;
+  }
+
+  .step-desc {
+    font-size: 0.9375rem;
+    color: var(--color-text-secondary);
+    margin-bottom: 24px;
+    line-height: 1.5;
+  }
+
+  /* ── Option cards (Step 1) ── */
+  .option-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .option-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
+    position: relative;
+  }
+
+  .option-card:hover {
+    border-color: var(--color-primary);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .option-card.selected {
+    border-color: var(--color-primary);
+    background: var(--color-primary-light);
+  }
+
+  .option-radio {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .option-body {
+    flex: 1;
+  }
+
+  .option-header-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 2px;
+  }
+
+  .option-name {
+    font-weight: 600;
+    font-size: 0.9375rem;
+  }
+
+  .option-tagline {
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary);
+    margin-top: 2px;
+  }
+
+  .badge-recommended {
+    background: var(--color-yellow);
+    color: #5a3d00;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 20px;
+  }
+
+  .option-check {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    opacity: 0;
+    transition: opacity var(--transition);
+    flex-shrink: 0;
+  }
+
+  .option-card.selected .option-check {
+    opacity: 1;
+  }
+
+  /* ── Info button ── */
+  .info-btn {
+    font-size: 1rem;
+    color: var(--color-text-secondary);
+    background: none;
+    border: none;
+    padding: 0 2px;
+    line-height: 1;
+    cursor: pointer;
+    transition: color var(--transition);
+    flex-shrink: 0;
+  }
+
+  .info-btn:hover,
+  .info-btn:focus {
+    color: var(--color-primary);
+    outline: none;
+  }
+
+  /* ── Tooltip popup ── */
+  .tooltip-popup {
+    position: absolute;
+    z-index: 100;
+    background: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-lg);
+    padding: 12px 14px;
+    max-width: 280px;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--color-text);
+    pointer-events: auto;
+  }
+
+  /* ── Frequency toggle (Step 2) ── */
+  .freq-toggle {
+    display: flex;
+    gap: 0;
+    margin-bottom: 20px;
+    margin-top: 10px;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    overflow: visible;
+    width: fit-content;
+  }
+
+  .freq-btn {
+    position: relative;
+    padding: 8px 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    background: transparent;
+    border: none;
+    transition: background var(--transition), color var(--transition);
+    cursor: pointer;
+  }
+
+  .freq-btn:first-child {
+    border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  }
+
+  .freq-btn:last-child {
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  }
+
+  .freq-btn.active {
+    background: var(--color-primary);
+    color: var(--color-white);
+  }
+
+  .freq-btn-sticker {
+    position: absolute;
+    top: -9px;
+    right: -18px;
+    transform: rotate(8deg);
+    white-space: nowrap;
+    font-size: 0.5625rem;
+    padding: 1px 5px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  }
+
+  .pledge-redirect-link {
+    display: block;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0 0 20px;
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary);
+    text-decoration: underline;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .pledge-redirect-link:hover {
+    color: var(--color-primary);
+  }
+
+  /* ── Amount row (Step 2) ── */
+  .amount-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .currency-wrapper {
+    margin-bottom: 16px;
+  }
+
+  .currency-wrapper select {
+    height: 52px;
+    padding: 0 10px;
+    border: 1.5px solid var(--color-primary);
+    border-radius: var(--radius-sm);
+    background: var(--color-primary-light);
+    font-size: 0.9375rem;
+    cursor: pointer;
+    transition: border-color var(--transition);
+  }
+
+  .currency-wrapper select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+  }
+
+  .amount-input-wrapper {
+    flex: 1;
+    position: relative;
+  }
+
+  .amount-symbol {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.125rem;
+    color: var(--color-text-secondary);
+    pointer-events: none;
+  }
+
+  .amount-input-wrapper input {
+    width: 100%;
+    height: 52px;
+    padding: 0 14px 0 36px;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 1.25rem;
+    font-weight: 600;
+    transition: border-color var(--transition);
+  }
+
+  .amount-input-wrapper input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+  }
+
+  .amount-input-wrapper input.error {
+    border-color: var(--color-error);
+  }
+
+  /* ── Preset amounts ── */
+  .preset-amounts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  :global(.preset-btn) {
+    padding: 8px 16px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    background: var(--color-white);
+    transition: all var(--transition);
+    cursor: pointer;
+  }
+
+  :global(.preset-btn:hover) {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+
+  :global(.preset-btn.active) {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-white);
+  }
+
+  /* ── Pledge calculator (Step 2) ── */
+  .pledge-pct-label {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    margin-bottom: 10px;
+  }
+
+  .pledge-result {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-top: 16px;
+    min-height: 1.4em;
+  }
+
+  /* ── HLI contribution card (Step 3) ── */
+  .hli-contrib-card {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 24px;
+  }
+
+  .hli-contrib-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .hli-contrib-label {
+    font-weight: 600;
+    font-size: 0.9375rem;
+  }
+
+  .stepped-selector {
+    display: flex;
+    gap: 6px;
+    align-items: flex-end;
+  }
+
+  .step-pill {
+    flex: 1;
+    cursor: pointer;
+    display: block;
+  }
+
+  .step-pill-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .step-pill-wrapper .step-pill {
+    flex: none;
+    width: 100%;
+  }
+
+  .step-pill input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+  }
+
+  .step-pill span {
+    display: block;
+    text-align: center;
+    padding: 6px 4px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    background: var(--color-white);
+    transition: all var(--transition);
+    cursor: pointer;
+    white-space: nowrap;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .step-pill input[type="radio"]:checked + span {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-white);
+  }
+
+  .hli-custom-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    cursor: pointer;
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary);
+  }
+
+  .hli-custom-toggle input[type="checkbox"] {
+    accent-color: var(--color-primary);
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .hli-custom-input {
+    display: none;
+    margin-top: 8px;
+  }
+
+  .hli-custom-input input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-xs);
+    font-size: 0.9375rem;
+    color: var(--color-text);
+    background: var(--color-white);
+    box-sizing: border-box;
+  }
+
+  .hli-custom-input input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+  }
+
+  .hli-contrib-subnote {
+    margin: 10px 0 0;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--color-text-secondary);
+  }
+
+  .hli-contrib-fee-note {
+    font-style: italic;
+  }
+
+  .hlf-split-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 16px;
+    margin-bottom: 16px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 20px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    background: var(--color-white);
+    cursor: pointer;
+    transition: all var(--transition);
+  }
+
+  .hlf-split-btn:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+
+  /* ── Charity sliders (Step 3) ── */
+  .charity-splits {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .charity-slider-row {}
+
+  .charity-slider-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+
+  .charity-info {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .charity-name {
+    font-weight: 500;
+    font-size: 0.9375rem;
+  }
+
+  .charity-tier-badge {
+    display: inline-block;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 20px;
+    line-height: 1.4;
+    vertical-align: middle;
+  }
+
+  .charity-tier-badge--top {
+    background: #2d6040;
+    color: #ffffff;
+  }
+
+  .charity-tier-badge--promising {
+    background: #c17f3a;
+    color: #ffffff;
+  }
+
+  .charity-pct-label {
+    font-weight: 700;
+    font-size: 0.9375rem;
+    color: var(--color-primary);
+    min-width: 40px;
+    text-align: right;
+  }
+
+  .charity-lock-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 20px;
+    background: var(--color-white);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all var(--transition);
+    flex-shrink: 0;
+  }
+
+  .charity-lock-btn:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+
+  .charity-lock-btn.locked {
+    background: var(--color-primary-light);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+
+  .charity-lock-icon {
+    width: 13px;
+    height: 13px;
+    color: var(--color-primary);
+    flex-shrink: 0;
+  }
+
+  .charity-lock-icon--closed {
+    display: none;
+  }
+
+  .charity-lock-btn.locked .charity-lock-icon--open {
+    display: none;
+  }
+
+  .charity-lock-btn.locked .charity-lock-icon--closed {
+    display: block;
+  }
+
+  .charity-range {
+    width: 100%;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--color-border);
+    border-radius: 3px;
+    cursor: pointer;
+    accent-color: var(--color-primary);
+  }
+
+  .charity-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    box-shadow: 0 1px 4px rgba(28, 58, 94, 0.3);
+    transition: transform var(--transition);
+  }
+
+  .charity-range::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+  }
+
+  .charity-range::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    border: none;
+    cursor: pointer;
+  }
+
+  /* ── Split total indicator ── */
+  .split-total {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  #splitTotalPct {
+    font-weight: 700;
+  }
+
+  .split-total-note {
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary);
+  }
+
+  /* ── Impact card (Step 3) ── */
+  .impact-card {
+    background: var(--color-primary-light);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius);
+    padding: 20px;
+    text-align: center;
+  }
+
+  .impact-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .impact-heading {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-primary);
+  }
+
+  .impact-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 4px;
+    margin-bottom: 12px;
+  }
+
+  .impact-metrics--two {
+    grid-template-columns: 1fr 1fr;
+    margin-bottom: 0;
+  }
+
+  .impact-context-card {
+    background: var(--color-primary-light);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius);
+    padding: 20px;
+    text-align: center;
+    margin-top: 12px;
+  }
+
+  .impact-metric {
+    padding: 8px 4px;
+  }
+
+  .impact-metric--secondary {
+    border-left: 1px solid var(--color-border-strong);
+  }
+
+  .impact-number {
+    font-size: clamp(1.25rem, 4vw, 1.75rem);
+    font-weight: 800;
+    color: var(--color-primary);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .impact-desc {
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary);
+  }
+
+  .impact-number--conf {
+    font-size: clamp(0.875rem, 2.5vw, 1.0625rem);
+    font-weight: 700;
+  }
+
+  .impact-breakdown {
+    text-align: left;
+    border-top: 1px solid var(--color-border-strong);
+    padding-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  :global(.impact-bk-row) {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary);
+  }
+
+  :global(.impact-hint) {
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary);
+    text-align: center;
+  }
+
+  /* ── Outcome cards (Step 3) ── */
+  .outcome-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .outcome-card {
+    background: var(--color-primary-light);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    padding: 14px 10px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .outcome-icon {
+    width: 28px;
+    height: 28px;
+    color: var(--color-primary);
+    flex-shrink: 0;
+  }
+
+  .outcome-number {
+    font-size: clamp(1.25rem, 4vw, 1.75rem);
+    font-weight: 800;
+    color: var(--color-primary);
+    line-height: 1;
+  }
+
+  .outcome-label {
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+    line-height: 1.3;
+  }
+
+  @media (max-width: 520px) {
+    .outcome-cards {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  /* ── Form fields (Step 4) ── */
+  .form-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 16px;
+  }
+
+  .form-group label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+  }
+
+  .form-group input,
+  .form-group select {
+    height: 46px;
+    padding: 0 12px;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 0.9375rem;
+    transition: border-color var(--transition);
+    background: var(--color-white);
+  }
+
+  .form-group input:focus,
+  .form-group select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+  }
+
+  .form-group input.error {
+    border-color: var(--color-error);
+  }
+
+  .field-optional {
+    font-weight: 400;
+    color: var(--color-text-secondary);
+    opacity: 0.75;
+  }
+
+  .field-note {
+    margin: 2px 0 0;
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+  }
+
+  .country-combobox {
+    position: relative;
+  }
+
+  .country-options {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    max-height: 240px;
+    overflow-y: auto;
+    margin: 0;
+    padding: 6px;
+    list-style: none;
+    background: var(--color-white);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-md);
+    z-index: 20;
+  }
+
+  .country-options li {
+    padding: 8px 10px;
+    border-radius: var(--radius-xs);
+    font-size: 0.9375rem;
+    color: var(--color-text);
+    cursor: pointer;
+  }
+
+  .country-options li:hover,
+  .country-options li.active {
+    background: var(--color-primary-light);
+  }
+
+  /* ── Gift Aid card (Step 4) ── */
+  .gift-aid-card {
+    background: var(--color-bg-card);
+    border: 1.5px solid var(--color-yellow);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .gift-aid-header {
+    margin-bottom: 6px;
+    font-size: 0.9375rem;
+  }
+
+  .gift-aid-desc {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    margin-bottom: 12px;
+    line-height: 1.5;
+  }
+
+  /* ── Checkbox labels ── */
+  .checkbox-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+  }
+
+  .checkbox-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    flex-shrink: 0;
+    accent-color: var(--color-primary);
+    cursor: pointer;
+  }
+
+  /* ── Review (Step 5) ── */
+  .review-summary {
+    background: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  :global(.review-row) {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    font-size: 0.9375rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  :global(.review-row:last-child) {
+    border-bottom: none;
+  }
+
+  :global(.review-row span:first-child) {
+    color: var(--color-text-secondary);
+    font-size: 0.875rem;
+  }
+
+  :global(.review-row span:last-child) {
+    font-weight: 600;
+    text-align: right;
+  }
+
+  :global(.impact-row span:last-child) {
+    color: var(--color-primary);
+  }
+
+  :global(.review-row--total) {
+    background: var(--color-bg);
+    font-weight: 700;
+  }
+
+  :global(.review-row--total span:first-child) {
+    color: var(--color-text);
+    font-weight: 700;
+  }
+
+  /* ── Monthly upsell (Step 5) ── */
+  .monthly-upsell {
+    background: var(--color-primary-light);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .monthly-upsell p {
+    margin: 0 0 10px;
+    font-size: 0.875rem;
+    color: var(--color-text);
+  }
+
+  .monthly-upsell-btn {
+    background: var(--color-primary);
+    color: var(--color-white);
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 8px 18px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .btn-complete {
+    display: block;
+    width: 100%;
+    padding: 16px;
+    background: var(--color-yellow);
+    color: var(--color-primary);
+    font-size: 1.0625rem;
+    font-weight: 700;
+    border-radius: 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: background var(--transition), transform var(--transition);
+    margin-bottom: 10px;
+  }
+
+  .btn-complete:hover {
+    background: #d4a43e;
+    transform: translateY(-1px);
+  }
+
+  .stripe-note {
+    text-align: center;
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary);
+  }
+
+  /* ── Form navigation ── */
+  .form-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 0 8px;
+  }
+
+  .btn {
+    padding: 10px 24px;
+    border-radius: 10px;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-back {
+    background: transparent;
+    color: var(--color-text-secondary);
+    border: none;
+  }
+
+  .btn-back:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+
+  .btn-primary {
+    background: var(--color-primary);
+    color: var(--color-white);
+    border: 1.5px solid var(--color-primary);
+    margin-left: auto;
+  }
+
+  .btn-primary:hover {
+    background: var(--color-primary-dark);
+    border-color: var(--color-primary-dark);
+    transform: translateY(-1px);
+  }
+
+  /* ── Shake animation (validation) ── */
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+
+  :global(.shake) {
+    animation: shake 0.45s var(--ease);
+  }
+
+  /* ── Payment Element UI (Step 5) ── */
+  .payment-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 32px 0;
+    color: var(--color-text-secondary);
+    font-size: 0.9375rem;
+  }
+
+  .spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--color-border);
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    flex-shrink: 0;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  #payment-element {
+    margin-bottom: 16px;
+  }
+
+  .payment-error {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    font-size: 0.875rem;
+    color: var(--color-error);
+    margin-bottom: 16px;
+  }
+
+  .payment-init-error {
+    text-align: center;
+    padding: 24px 0;
+    color: var(--color-text-secondary);
+    font-size: 0.9375rem;
+  }
+
+  .payment-init-error p {
+    margin-bottom: 12px;
+  }
+
+  .btn-retry {
+    padding: 10px 24px;
+    background: var(--color-primary);
+    color: var(--color-white);
+    border-radius: 10px;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--transition);
+  }
+
+  .btn-retry:hover {
+    background: var(--color-primary-dark);
+  }
+
+  .mockup-pay-btn {
+    display: block;
+    width: 100%;
+    max-width: 280px;
+    margin: 12px auto 0;
+    border: 1.5px dashed var(--color-border-strong);
+    background: var(--color-yellow);
+  }
+
+  .btn-complete:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 480px) {
+    .step {
+      padding: 24px 20px;
+    }
+
+    .form-row-2 {
+      grid-template-columns: 1fr;
+    }
+
+    .preset-amounts {
+      gap: 6px;
+    }
+
+    :global(.preset-btn) {
+      padding: 7px 12px;
+      font-size: 0.875rem;
+    }
+
+    .stepped-selector {
+      gap: 4px;
+    }
+
+    .step-pill span {
+      padding: 5px 9px;
+      font-size: 0.8125rem;
+    }
+  }
+</style>
