@@ -165,7 +165,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
                     {c.tier === 'top' ? 'Top Charity' : 'Promising'}
                   </span>
                 </div>
-                <p class="charity-picker-desc">{c.shortDescription}</p>
+                <p class="charity-picker-desc">{c.fullDescription}</p>
                 <a
                   class="charity-picker-report-link"
                   href={c.reportUrl ?? c.website}
@@ -174,7 +174,6 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
                 >Read our report →</a>
                 <div class="charity-picker-stats">
                   <span class="charity-picker-stat" id={`effectiveness-${c.id}`}></span>
-                  <span class="charity-picker-stat" id={`confidence-${c.id}`}></span>
                 </div>
               </div>
               <button
@@ -198,11 +197,6 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
         <!-- Charity split sliders — populated by JS as charities are added -->
         <div class="charity-splits" id="charitySplits"></div>
 
-        <div class="split-total" id="splitTotal" hidden>
-          <span>Total: </span><span id="splitTotalPct">100%</span>
-          <span class="split-total-note" id="splitTotalNote"></span>
-        </div>
-
         <!-- Impact calculator -->
         <div class="impact-card">
           <div class="impact-header-row">
@@ -216,12 +210,12 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
           </div>
           <div class="impact-metrics impact-metrics--two">
             <div class="impact-metric">
-              <div class="impact-number" id="impactWellbys">—</div>
-              <div class="impact-desc">WELLBYs generated</div>
-            </div>
-            <div class="impact-metric impact-metric--secondary">
               <div class="impact-number" id="impactDepressionYears">—</div>
               <div class="impact-desc">years of depression averted</div>
+            </div>
+            <div class="impact-metric impact-metric--secondary">
+              <div class="impact-number" id="impactWellbys">—</div>
+              <div class="impact-desc">WELLBYs generated</div>
             </div>
           </div>
           <div class="impact-breakdown" id="impactBreakdown"></div>
@@ -692,8 +686,9 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
       const fraction = totalSplits > 0 ? state.splits[c.id] / totalSplits : 0;
       const allocated = charityAmt * fraction;
       const wellbys = allocated / c.costPerWellby;
+      const outcomes = allocated / c.costPerOutcome;
       totalWellbys += wellbys;
-      if (wellbys > 0) breakdown.push({ name: c.name, wellbys });
+      if (wellbys > 0) breakdown.push({ name: c.name, outcomes, outcomeLabel: c.outcomeLabel });
     });
 
     const depressionYears = totalWellbys / 1.3;
@@ -701,7 +696,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     wellbysEl.textContent = fmt(totalWellbys);
     deprYrsEl.textContent = fmt(depressionYears);
     bkEl.innerHTML = breakdown
-      .map((b) => `<div class="impact-bk-row"><span>${b.name}</span><span>${fmt(b.wellbys)} WELLBYs</span></div>`)
+      .map((b) => `<div class="impact-bk-row"><span>${b.name}</span><span>${fmt(b.outcomes)} ${b.outcomeLabel}</span></div>`)
       .join('');
 
     // Outcome cards
@@ -716,26 +711,10 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   }
 
   // ── Split sliders ────────────────────────────────────────────────────────
-  function renderSplitTotals() {
-    const splitTotalRow = qs('#splitTotal');
-    if (state.addedCharityIds.length === 0) {
-      if (splitTotalRow) splitTotalRow.hidden = true;
-      return;
-    }
-    if (splitTotalRow) splitTotalRow.hidden = false;
-
-    const total = Object.values(state.splits).reduce((s, v) => s + v, 0);
-    const el = qs('#splitTotalPct');
-    const note = qs('#splitTotalNote');
-    el.textContent = `${Math.round(total)}%`;
-    if (Math.abs(total - 100) > 0.5) {
-      el.style.color = 'var(--color-error)';
-      note.textContent = `— will auto-adjust to 100% when you continue`;
-    } else {
-      el.style.color = 'var(--color-success)';
-      note.textContent = '';
-    }
-  }
+  // The visible "Total: X%" row was removed as redundant (sliders always sum
+  // to 100% via redistributeSplits/normalizeSplits) — kept as a no-op call
+  // site so the rest of the flow doesn't need to change.
+  function renderSplitTotals() {}
 
   function normalizeSplits() {
     const added = addedCharities();
@@ -1223,12 +1202,6 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
               <span class="charity-tier-badge charity-tier-badge--${c.tier}">
                 ${c.tier === 'top' ? 'Top Charity' : 'Promising'}
               </span>
-              <button
-                type="button"
-                class="info-btn"
-                aria-label="More about ${c.name}"
-                data-tooltip="${c.fullDescription.replace(/"/g, '&quot;')}"
-              >ⓘ</button>
             </div>
             <span class="charity-pct-label" id="pct-${c.id}">0%</span>
             <button
@@ -1363,17 +1336,11 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
         }
       });
 
-      // Static effectiveness/confidence stats on the picker card
+      // Static effectiveness stat on the picker card
       const effEl = qs(`#effectiveness-${c.id}`);
       if (effEl) {
         const yearsPerDollar = 1 / (c.costPerWellby * 1.3);
         effEl.textContent = `1 year of depression averted per $${Math.round(1 / yearsPerDollar)}`;
-      }
-      const confEl = qs(`#confidence-${c.id}`);
-      if (confEl) {
-        const { label, color } = confidenceLabel(c.confidenceScore);
-        confEl.textContent = label;
-        confEl.style.color = color;
       }
     });
 
@@ -2097,10 +2064,11 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 
   /* ── HLI contribution card (Step 3) ── */
   .hli-contrib-card {
-    background: var(--color-bg);
-    border: 1px solid var(--color-border);
+    background: var(--color-primary-light);
+    border: 1.5px solid var(--color-primary);
     border-radius: var(--radius);
     padding: 16px;
+    margin-top: 24px;
     margin-bottom: 24px;
   }
 
@@ -2364,9 +2332,10 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   :global(.charity-slider-row) {}
 
   :global(.charity-slider-header) {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 48px auto;
     align-items: center;
-    justify-content: space-between;
+    gap: 10px;
     margin-bottom: 6px;
   }
 
@@ -2374,6 +2343,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     display: flex;
     align-items: center;
     gap: 4px;
+    min-width: 0;
   }
 
   :global(.charity-name) {
@@ -2407,7 +2377,6 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     font-weight: 700;
     font-size: 0.9375rem;
     color: var(--color-primary);
-    min-width: 40px;
     text-align: right;
   }
 
@@ -2490,29 +2459,6 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     background: var(--color-primary);
     border: none;
     cursor: pointer;
-  }
-
-  /* ── Split total indicator ── */
-  .split-total {
-    font-size: 0.875rem;
-    color: var(--color-text-secondary);
-    margin-bottom: 20px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .split-total[hidden] {
-    display: none;
-  }
-
-  #splitTotalPct {
-    font-weight: 700;
-  }
-
-  .split-total-note {
-    font-size: 0.8125rem;
-    color: var(--color-text-secondary);
   }
 
   /* ── Impact card (Step 3) ── */
