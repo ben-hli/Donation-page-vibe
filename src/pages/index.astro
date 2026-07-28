@@ -761,7 +761,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     wellbysEl.textContent = fmt(totalWellbys);
     deprYrsEl.textContent = fmt(depressionYears);
     bkEl.innerHTML = breakdown
-      .map((b) => `<div class="impact-bk-row"><span>${b.name}</span><span>${fmt(b.outcomes)} ${b.outcomeLabel}</span></div>`)
+      .map((b) => `<div class="impact-bk-row"><span>${b.name}</span><span aria-hidden="true"></span><span>${fmt(b.outcomes)} ${b.outcomeLabel}</span></div>`)
       .join('');
 
     // Outcome cards
@@ -2424,7 +2424,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 
   :global(.charity-slider-row) {
     display: grid;
-    grid-template-columns: 150px 1fr 48px auto;
+    grid-template-columns: 130px 1fr 48px auto;
     align-items: center;
     gap: 14px;
   }
@@ -2439,7 +2439,8 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   :global(.charity-info) {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
+    text-align: center;
     gap: 4px;
     min-width: 0;
   }
@@ -2641,9 +2642,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     padding-top: 14px;
     margin-top: 6px;
     display: grid;
-    grid-template-columns: max-content max-content;
-    justify-content: center;
-    column-gap: 24px;
+    grid-template-columns: 1fr auto 1fr;
     row-gap: 4px;
   }
 
@@ -2651,15 +2650,16 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     display: contents;
     font-size: 0.8125rem;
     color: var(--color-text-secondary);
-    white-space: nowrap;
   }
 
   :global(.impact-bk-row span:first-child) {
     text-align: left;
+    padding-left: 8px;
   }
 
   :global(.impact-bk-row span:last-child) {
     text-align: left;
+    padding-left: 12px;
   }
 
   :global(.impact-hint) {
