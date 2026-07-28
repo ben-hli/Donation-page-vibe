@@ -10,6 +10,8 @@ export interface Charity {
   website: string;
   tier: 'top' | 'promising';
   defaultSplitPct: number;
+  logoUrl?: string;
+  reportUrl?: string;
 }
 
 export interface DonationOption {

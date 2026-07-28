@@ -54,7 +54,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
       <form id="surveyForm">
         <div class="form-group">
-          <label for="howHeard">How did you hear about us?</label>
+          <label for="howHeard"><span class="question-number">1.</span> How did you hear about us?</label>
           <select id="howHeard">
             <option value="">Select an option…</option>
             <option value="sam_harris_podcast">Sam Harris Podcast</option>
@@ -72,7 +72,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         </div>
 
         <div class="form-group">
-          <label>To what extent do you agree with the following statement?</label>
+          <label><span class="question-number">2.</span> To what extent do you agree with the following statement?</label>
           <p class="likert-statement">"Improving the <strong>quality</strong> of people's lives matters <strong>more</strong> to me than <strong>extending</strong> the length of their lives."</p>
           <div class="likert-scale likert-scale--8pt" role="radiogroup" aria-label="Agreement level">
             <label class="likert-option">
@@ -111,7 +111,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         </div>
 
         <div class="form-group">
-          <label>Would you have donated this money to another charity if HLI didn't exist?</label>
+          <label><span class="question-number">3.</span> Would you have donated this money to another charity if HLI didn't exist?</label>
           <div class="radio-options" role="radiogroup" aria-label="Counterfactual donation">
             <label class="radio-option">
               <input type="radio" name="counterfactualDonation" value="definitely_yes" />
@@ -137,7 +137,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         </div>
 
         <div class="form-group" id="counterfactualDestinationGroup" hidden>
-          <label>Where would that donation most likely have gone?</label>
+          <label><span class="question-number">3a.</span> Where would that donation most likely have gone?</label>
           <div class="radio-options" role="radiogroup" aria-label="Counterfactual destination">
             <label class="radio-option">
               <input type="radio" name="counterfactualDestination" value="other_ea_charities" />
@@ -395,6 +395,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     font-size: 0.875rem;
     font-weight: 500;
     color: var(--color-text-secondary);
+  }
+
+  .question-number {
+    font-weight: 700;
+    color: var(--color-primary);
   }
 
   .form-group input[type="text"],
