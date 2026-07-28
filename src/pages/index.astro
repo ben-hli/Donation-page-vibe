@@ -2560,14 +2560,12 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 
   /* ── Impact card (Step 3) ── */
   .impact-card {
-    background: var(--color-primary-light);
-    border: 1px solid var(--color-border-strong);
-    border-radius: var(--radius);
-    padding: 20px;
+    padding: 24px 0 4px;
     text-align: center;
     max-width: 640px;
     margin-left: auto;
     margin-right: auto;
+    border-top: 1px solid var(--color-border);
   }
 
   .impact-header-row {
@@ -2575,7 +2573,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     align-items: center;
     justify-content: center;
     gap: 6px;
-    margin-bottom: 12px;
+    margin-bottom: 16px;
   }
 
   .impact-heading {
@@ -2612,15 +2610,15 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   }
 
   .impact-metric--secondary {
-    border-left: 1px solid var(--color-border-strong);
+    border-left: 1px solid var(--color-border);
   }
 
   .impact-number {
-    font-size: clamp(1.25rem, 4vw, 1.75rem);
+    font-size: clamp(1.5rem, 4.5vw, 2.125rem);
     font-weight: 800;
     color: var(--color-primary);
     line-height: 1;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
   }
 
   .impact-desc {
@@ -2635,8 +2633,9 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 
   .impact-breakdown {
     text-align: left;
-    border-top: 1px solid var(--color-border-strong);
-    padding-top: 10px;
+    border-top: 1px solid var(--color-border);
+    padding-top: 14px;
+    margin-top: 6px;
     display: flex;
     flex-direction: column;
     gap: 4px;
