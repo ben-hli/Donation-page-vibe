@@ -259,12 +259,13 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
           </div>
           <div class="impact-metrics impact-metrics--two">
             <div class="impact-metric">
-              <div class="impact-number" id="impactDepressionYears">—</div>
-              <div class="impact-desc">years of depression averted</div>
-            </div>
-            <div class="impact-metric impact-metric--secondary">
               <div class="impact-number" id="impactWellbys">—</div>
               <div class="impact-desc">WELLBYs generated</div>
+            </div>
+            <span class="impact-equals" aria-hidden="true">=</span>
+            <div class="impact-metric impact-metric--secondary">
+              <div class="impact-number" id="impactDepressionYears">—</div>
+              <div class="impact-desc">years of depression averted</div>
             </div>
           </div>
           <div class="impact-breakdown" id="impactBreakdown"></div>
@@ -2591,8 +2592,16 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   }
 
   .impact-metrics--two {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
     margin-bottom: 0;
+  }
+
+  .impact-equals {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-text-secondary);
+    padding: 0 12px;
   }
 
   .impact-context-card {
@@ -2608,9 +2617,6 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     padding: 8px 4px;
   }
 
-  .impact-metric--secondary {
-    border-left: 1px solid var(--color-border);
-  }
 
   .impact-number {
     font-size: clamp(1.5rem, 4.5vw, 2.125rem);
