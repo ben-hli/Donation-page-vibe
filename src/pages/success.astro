@@ -10,9 +10,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
     <header class="page-header">
       <a href="https://happierlivesinstitute.org" target="_blank" rel="noopener" aria-label="Happier Lives Institute homepage">
-        <img src="/images/hli-logo.png" alt="Happier Lives Institute" class="logo" width="160" height="48" />
+        <img src="/images/hli-logo-long.png" alt="Happier Lives Institute" class="logo" width="320" height="36" />
       </a>
-      <p class="header-subtitle">Donation Portal</p>
     </header>
 
     <div class="form-card" id="successCard">
@@ -38,6 +37,133 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       <a href="/" class="btn-home">← Try again</a>
     </div>
 
+    <!-- Donor account CTA — TODO: replace href with real Donational account URL -->
+    <div class="mug-offer" id="donorAccountOffer">
+      <span class="mug-offer-icon" aria-hidden="true">👤</span>
+      <div>
+        <strong>Manage your Donational account</strong>
+        <p>Update your contact preferences, view your giving history, and see your impact over time.</p>
+        <a href="#" class="btn-home donor-account-btn">Manage your Donational account →</a>
+      </div>
+    </div>
+
+    <!-- Additional info survey -->
+    <div class="form-card survey-card" id="surveyCard">
+      <h2 class="survey-title">A couple of quick questions</h2>
+      <p class="survey-intro">Totally optional — but it helps us understand our donors better.</p>
+
+      <form id="surveyForm">
+        <div class="form-group">
+          <label for="howHeard">How did you hear about us?</label>
+          <select id="howHeard">
+            <option value="">Select an option…</option>
+            <option value="sam_harris_podcast">Sam Harris Podcast</option>
+            <option value="lives_lived_well_podcast">Lives Lived Well Podcast</option>
+            <option value="80k_hours_podcast">80k Hours Podcast</option>
+            <option value="another_podcast">Another podcast</option>
+            <option value="word_of_mouth">Word of mouth</option>
+            <option value="ea_forum">EA forum</option>
+            <option value="conference_talk">Conference/Talk</option>
+            <option value="social_media">Social media</option>
+            <option value="traditional_media">Traditional media</option>
+            <option value="other">Other</option>
+          </select>
+          <input type="text" id="howHeardOther" placeholder="Please specify" hidden />
+        </div>
+
+        <div class="form-group">
+          <label>To what extent do you agree with the following statement?</label>
+          <p class="likert-statement">"Improving the <strong>quality</strong> of people's lives matters <strong>more</strong> to me than <strong>extending</strong> the length of their lives."</p>
+          <div class="likert-scale likert-scale--8pt" role="radiogroup" aria-label="Agreement level">
+            <label class="likert-option">
+              <input type="radio" name="valuesStatement" value="0" />
+              <span>0<br />Strongly disagree</span>
+            </label>
+            <label class="likert-option">
+              <input type="radio" name="valuesStatement" value="1" />
+              <span>1</span>
+            </label>
+            <label class="likert-option">
+              <input type="radio" name="valuesStatement" value="2" />
+              <span>2</span>
+            </label>
+            <label class="likert-option">
+              <input type="radio" name="valuesStatement" value="3" />
+              <span>3</span>
+            </label>
+            <label class="likert-option">
+              <input type="radio" name="valuesStatement" value="4" />
+              <span>4</span>
+            </label>
+            <label class="likert-option">
+              <input type="radio" name="valuesStatement" value="5" />
+              <span>5</span>
+            </label>
+            <label class="likert-option">
+              <input type="radio" name="valuesStatement" value="6" />
+              <span>6</span>
+            </label>
+            <label class="likert-option">
+              <input type="radio" name="valuesStatement" value="7" />
+              <span>7<br />Strongly agree</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Would you have donated this money to another charity if HLI didn't exist?</label>
+          <div class="radio-options" role="radiogroup" aria-label="Counterfactual donation">
+            <label class="radio-option">
+              <input type="radio" name="counterfactualDonation" value="definitely_yes" />
+              <span>Definitely yes</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="counterfactualDonation" value="probably_yes" />
+              <span>Probably yes</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="counterfactualDonation" value="probably_not" />
+              <span>Probably not</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="counterfactualDonation" value="definitely_not" />
+              <span>Definitely not</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="counterfactualDonation" value="unsure" />
+              <span>Unsure</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group" id="counterfactualDestinationGroup" hidden>
+          <label>Where would that donation most likely have gone?</label>
+          <div class="radio-options" role="radiogroup" aria-label="Counterfactual destination">
+            <label class="radio-option">
+              <input type="radio" name="counterfactualDestination" value="other_ea_charities" />
+              <span>Other EA charities</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="counterfactualDestination" value="other_wellbeing_charities" />
+              <span>Other wellbeing-focused charities</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="counterfactualDestination" value="non_ea_charity" />
+              <span>Non-EA, non-wellbeing-focused charity</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="counterfactualDestination" value="mix" />
+              <span>A mix</span>
+            </label>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-home survey-submit">Submit</button>
+      </form>
+
+      <p class="survey-thanks" id="surveyThanks" hidden>Thanks for sharing!</p>
+    </div>
+
   </main>
 </BaseLayout>
 
@@ -50,6 +176,42 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     document.getElementById('successCard').setAttribute('hidden', '');
     document.getElementById('failedCard').removeAttribute('hidden');
   }
+
+  // "Other" option on how_heard reveals a free-text input
+  const howHeardSelect = document.getElementById('howHeard');
+  const howHeardOther = document.getElementById('howHeardOther');
+  howHeardSelect?.addEventListener('change', () => {
+    howHeardOther.hidden = howHeardSelect.value !== 'other';
+  });
+
+  // counterfactual_destination shown only for "Probably yes" / "Definitely yes"
+  const counterfactualDonationInputs = document.querySelectorAll('input[name="counterfactualDonation"]');
+  const counterfactualDestinationGroup = document.getElementById('counterfactualDestinationGroup');
+  counterfactualDonationInputs.forEach((input) => {
+    input.addEventListener('change', () => {
+      const show = input.value === 'probably_yes' || input.value === 'definitely_yes';
+      counterfactualDestinationGroup.hidden = !show;
+    });
+  });
+
+  // Survey submit — this is a UI mockup; the backend team will wire up real persistence
+  document.getElementById('surveyForm')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const valuesStatement = document.querySelector('input[name="valuesStatement"]:checked');
+    const counterfactualDonation = document.querySelector('input[name="counterfactualDonation"]:checked');
+    const counterfactualDestination = document.querySelector('input[name="counterfactualDestination"]:checked');
+    const payload = {
+      how_heard: howHeardSelect.value === 'other' ? howHeardOther.value : howHeardSelect.value,
+      values_statement_agreement: valuesStatement ? Number(valuesStatement.value) : null,
+      counterfactual_donation: counterfactualDonation ? counterfactualDonation.value : null,
+      counterfactual_destination: counterfactualDestinationGroup.hidden
+        ? null
+        : (counterfactualDestination ? counterfactualDestination.value : null),
+    };
+    console.log('Survey response (mockup only):', payload);
+    document.getElementById('surveyForm').hidden = true;
+    document.getElementById('surveyThanks').hidden = false;
+  });
 </script>
 
 <style>
@@ -61,22 +223,14 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
   .page-header {
     display: flex;
-    align-items: center;
-    gap: 12px;
+    justify-content: center;
     margin-bottom: 32px;
   }
 
   .logo {
-    height: 40px;
+    height: 36px;
     width: auto;
     object-fit: contain;
-  }
-
-  .header-subtitle {
-    font-size: 0.875rem;
-    color: var(--color-text-secondary);
-    border-left: 1px solid var(--color-border);
-    padding-left: 12px;
   }
 
   .form-card {
@@ -146,5 +300,191 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   .btn-home:hover {
     background: var(--color-primary-dark);
     transform: translateY(-1px);
+  }
+
+  /* ── Donor account CTA ── */
+  .mug-offer {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    background: var(--color-primary-light);
+    border: 1.5px solid var(--color-primary);
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin-top: 24px;
+  }
+
+  .mug-offer-icon {
+    font-size: 1.75rem;
+    line-height: 1;
+  }
+
+  .mug-offer strong {
+    display: block;
+    color: var(--color-text);
+    margin-bottom: 4px;
+  }
+
+  .mug-offer p {
+    margin: 0 0 12px;
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+  }
+
+  .donor-account-btn {
+    margin-top: 0;
+    padding: 8px 18px;
+    font-size: 0.875rem;
+  }
+
+  /* ── Survey ── */
+  .survey-card {
+    margin-top: 24px;
+    text-align: left;
+    padding: 36px 32px;
+  }
+
+  .survey-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin-bottom: 6px;
+  }
+
+  .survey-intro {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    margin-bottom: 24px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 18px;
+  }
+
+  .form-group[hidden] {
+    display: none;
+  }
+
+  .form-group > label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+  }
+
+  .form-group input[type="text"],
+  .form-group input[type="email"],
+  .form-group select {
+    height: 46px;
+    padding: 0 12px;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 0.9375rem;
+    background: var(--color-white);
+    transition: border-color 0.2s;
+  }
+
+  .form-group input[type="text"]:focus,
+  .form-group input[type="email"]:focus,
+  .form-group select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+  }
+
+  .likert-statement {
+    margin: 2px 0 10px;
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    font-style: italic;
+  }
+
+  .radio-options {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 6px;
+    padding-left: 12px;
+  }
+
+  .radio-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 0;
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+  }
+
+  .radio-option input {
+    accent-color: var(--color-primary);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .likert-scale {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 4px;
+  }
+
+  .likert-option {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+  }
+
+  .likert-option input {
+    accent-color: var(--color-primary);
+    cursor: pointer;
+  }
+
+  .likert-scale--8pt {
+    justify-content: space-between;
+    gap: 4px;
+    flex-wrap: nowrap;
+  }
+
+  .likert-scale--8pt .likert-option {
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    text-align: center;
+  }
+
+  .likert-scale--8pt .likert-option span {
+    font-size: 0.6875rem;
+    line-height: 1.3;
+  }
+
+  @media (max-width: 480px) {
+    .likert-scale--8pt {
+      flex-wrap: wrap;
+    }
+
+    .likert-scale--8pt .likert-option {
+      flex: 0 0 auto;
+      width: calc(25% - 4px);
+    }
+  }
+
+  .survey-submit {
+    border: none;
+    cursor: pointer;
+    margin-top: 8px;
+  }
+
+  .survey-thanks {
+    font-size: 0.9375rem;
+    color: var(--color-primary);
+    font-weight: 600;
+    text-align: center;
   }
 </style>

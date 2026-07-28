@@ -16,9 +16,8 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     <!-- Header -->
     <header class="page-header">
       <a href="https://happierlivesinstitute.org" target="_blank" rel="noopener" aria-label="Happier Lives Institute homepage">
-        <img src="/images/hli-logo.png" alt="Happier Lives Institute" class="logo" width="160" height="48" />
+        <img src="/images/hli-logo-long.png" alt="Happier Lives Institute" class="logo" width="320" height="36" />
       </a>
-      <p class="header-subtitle">Donation Portal</p>
     </header>
 
     <!-- Progress bar (rendered by JS) -->
@@ -67,12 +66,19 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 
         <div class="freq-toggle" role="group" aria-label="Donation frequency">
           <button type="button" class="freq-btn" data-freq="one-off">One-time</button>
-          <button type="button" class="freq-btn" data-freq="monthly">Monthly</button>
-          <button type="button" class="freq-btn active freq-btn-pledge" data-freq="pledge">
-            <span class="badge-recommended freq-btn-sticker">Recommended</span>
+          <button type="button" class="freq-btn active" data-freq="monthly">
+            <span class="badge-recommended freq-btn-sticker">Most impactful</span>
+            Monthly
+          </button>
+          <!-- Pledge option temporarily disabled — code kept for later re-enable -->
+          <button type="button" class="freq-btn freq-btn-pledge" data-freq="pledge" style="display:none;">
             Pledge
           </button>
         </div>
+
+        <button type="button" class="pledge-redirect-link" id="pledgeRedirectLink">
+          Want to give a percentage of your income? Take a pledge!
+        </button>
 
         <div class="currency-wrapper">
           <select id="currency" aria-label="Currency">
@@ -84,7 +90,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
           </select>
         </div>
 
-        <div id="manualAmountGroup" style="display:none;">
+        <div id="manualAmountGroup">
           <div class="amount-row">
             <div class="amount-input-wrapper">
               <span class="amount-symbol" id="currencySymbol">$</span>
@@ -99,8 +105,8 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
             </div>
           </div>
 
-          <div class="preset-amounts" aria-label="Preset amounts">
-            {[25, 50, 100, 250, 500, 1000].map((n) => (
+          <div class="preset-amounts" aria-label="Preset amounts" id="presetAmounts" data-freq="monthly">
+            {[10, 25, 50, 100, 250, 500].map((n) => (
               <button type="button" class="preset-btn" data-amount={n}>{n}</button>
             ))}
           </div>
@@ -108,7 +114,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
           <p class="amount-note" id="amountNote"></p>
         </div>
 
-        <div id="pledgeCalculator">
+        <div id="pledgeCalculator" style="display:none;">
           <div class="amount-row">
             <div class="amount-input-wrapper">
               <span class="amount-symbol" id="pledgeCurrencySymbol">$</span>
@@ -150,7 +156,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
               type="button"
               class="info-btn"
               aria-label="More about the HLI contribution"
-              data-tooltip="HLI is the research organisation behind these recommendations. A small contribution to HLI helps fund the rigorous work that identifies high-impact opportunities."
+              data-tooltip="The Happier Lives Institute is on a mission to put wellbeing at the heart of decision making. We have big dreams to do more research, evaluate more charities and build better infrastructure for our donors, but currently we don't have the funding to achieve all our goals"
             >ⓘ</button>
           </div>
           <div class="stepped-selector" role="radiogroup" aria-label="HLI percentage">
@@ -191,7 +197,15 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
               placeholder="Enter a percentage (0–100)"
             />
           </div>
+          <p class="hli-contrib-subnote">
+            According to our estimates, for every $9.50 HLI spent on research and operations in 2025 we averted a year of depression. This is over 3x more effective than our top charity StrongMinds!
+          </p>
+          <p class="hli-contrib-subnote hli-contrib-fee-note">
+            This contribution is charged in addition to your donation and does not reduce the amount your chosen charities receive.
+          </p>
         </div>
+
+        <button type="button" class="hlf-split-btn" id="hlfSplitBtn">HLF Split</button>
 
         <!-- Charity split sliders -->
         <div class="charity-splits" id="charitySplits">
@@ -210,7 +224,24 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
                     data-tooltip={c.fullDescription}
                   >ⓘ</button>
                 </div>
-                <span class="charity-pct-label" id={`pct-${c.id}`}>0%</span>
+                <span class="charity-pct-label" id={`pct-${c.id}`}>{Math.round(c.defaultSplitPct)}%</span>
+                <button
+                  type="button"
+                  class="charity-lock-btn"
+                  id={`lock-${c.id}`}
+                  aria-pressed="false"
+                  aria-label={`Lock ${c.name} percentage`}
+                >
+                  <svg class="charity-lock-icon charity-lock-icon--open" aria-hidden="true" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor"/>
+                    <path d="M8 11V7a4 4 0 0 1 7.5-1.94" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+                  </svg>
+                  <svg class="charity-lock-icon charity-lock-icon--closed" aria-hidden="true" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor"/>
+                    <path d="M8 11V7a4 4 0 1 1 8 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+                  </svg>
+                  <span class="charity-lock-label">Lock</span>
+                </button>
               </div>
               <input
                 type="range"
@@ -218,12 +249,12 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
                 id={`range-${c.id}`}
                 min="0"
                 max="100"
-                value="0"
+                value={Math.round(c.defaultSplitPct)}
                 step="1"
                 aria-label={`${c.name} percentage`}
                 aria-valuemin="0"
                 aria-valuemax="100"
-                aria-valuenow="25"
+                aria-valuenow={Math.round(c.defaultSplitPct)}
               />
             </div>
           ))}
@@ -245,7 +276,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
               data-tooltip="WELLBYs (Wellbeing-Adjusted Life Years) measure the wellbeing impact of your donation using HLI's cost-per-WELLBY estimates. Depression years averted = WELLBYs ÷ 1.3. Confidence score reflects the depth and quality of evidence behind each charity's estimate, weighted by your allocation."
             >ⓘ</button>
           </div>
-          <div class="impact-metrics">
+          <div class="impact-metrics impact-metrics--two">
             <div class="impact-metric">
               <div class="impact-number" id="impactWellbys">—</div>
               <div class="impact-desc">WELLBYs generated</div>
@@ -254,10 +285,12 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
               <div class="impact-number" id="impactDepressionYears">—</div>
               <div class="impact-desc">years of depression averted</div>
             </div>
+            <!-- Evidence confidence / risk score — disabled for now, code kept for later re-enable
             <div class="impact-metric impact-metric--secondary">
               <div class="impact-number" id="impactConfidence">—</div>
               <div class="impact-desc">evidence confidence</div>
             </div>
+            -->
           </div>
           <div class="impact-breakdown" id="impactBreakdown"></div>
         </div>
@@ -308,7 +341,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
           </div>
         </div>
 
-        <!-- Putting your impact in context -->
+        <!-- "Putting your impact in context" — disabled for now, code kept for later re-enable
         <div class="impact-context-card">
           <div class="impact-header-row">
             <span class="impact-heading">Putting your impact in context</span>
@@ -324,6 +357,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
             </div>
           </div>
         </div>
+        -->
       </section>
 
       <!-- ── Step 4: About you ── -->
@@ -347,14 +381,47 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
           <input type="email" id="email" autocomplete="email" required />
         </div>
 
-        <div class="form-group">
+        <div class="form-group country-combobox" id="countryCombobox">
           <label for="country">Country</label>
-          <select id="country" autocomplete="country">
-            <option value="">Select country…</option>
-            {countries.map(c => (
-              <option value={c.code}>{c.name}</option>
-            ))}
-          </select>
+          <input
+            type="text"
+            id="country"
+            role="combobox"
+            aria-expanded="false"
+            aria-autocomplete="list"
+            aria-controls="countryOptions"
+            autocomplete="off"
+            placeholder="Start typing a country…"
+          />
+          <ul class="country-options" id="countryOptions" role="listbox" hidden></ul>
+        </div>
+
+        <div class="form-group">
+          <label for="addressLine1">Address line 1</label>
+          <input type="text" id="addressLine1" autocomplete="address-line1" required />
+          <p class="field-note" id="addressLine1Note" hidden>A UK address is required for Gift Aid.</p>
+        </div>
+
+        <div class="form-group">
+          <label for="addressLine2">Address line 2 <span class="field-optional">(optional)</span></label>
+          <input type="text" id="addressLine2" autocomplete="address-line2" placeholder="Apartment, suite, unit" />
+        </div>
+
+        <div class="form-group">
+          <label for="city">City / Town</label>
+          <input type="text" id="city" autocomplete="address-level2" required />
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="state" id="stateLabel">State / Province / Region <span class="field-optional" id="stateOptionalTag">(optional)</span></label>
+            <input type="text" id="state" autocomplete="address-level1" />
+          </div>
+          <div class="form-group">
+            <label for="postalCode">Postal / ZIP code <span class="field-optional" id="postalOptionalTag">(optional)</span></label>
+            <input type="text" id="postalCode" autocomplete="postal-code" />
+            <p class="field-note" id="postalCodeNote" hidden></p>
+          </div>
         </div>
 
         <!-- Gift Aid (UK only) -->
@@ -375,11 +442,6 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
             </span>
           </label>
         </div>
-
-        <label class="checkbox-label anonymous-label">
-          <input type="checkbox" id="anonymous" />
-          <span>Keep my donation anonymous</span>
-        </label>
       </section>
 
       <!-- ── Step 5: Review ── -->
@@ -390,23 +452,9 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
           <!-- Populated by JS -->
         </div>
 
-        <div class="trust-signals">
-          <div class="trust-signal">
-            <span class="trust-icon">🔒</span>
-            <span>Secure payment via Stripe</span>
-          </div>
-          <div class="trust-signal">
-            <span class="trust-icon">✓</span>
-            <span>No percentage taken from programme donations</span>
-          </div>
-          <div class="trust-signal">
-            <span class="trust-icon">📊</span>
-            <span>
-              <a href="https://happierlivesinstitute.org/transparency" target="_blank" rel="noopener">
-                Full financial transparency
-              </a>
-            </span>
-          </div>
+        <div class="monthly-upsell" id="monthlyUpsell" style="display:none;">
+          <p>Make your donation monthly instead and build a giving habit! You can always alter the amount in our donor platform later</p>
+          <button type="button" class="monthly-upsell-btn" id="monthlyUpsellBtn">Make it monthly</button>
         </div>
 
         <!-- Payment loading state -->
@@ -429,6 +477,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
         <div id="paymentInitError" class="payment-init-error" style="display:none;" role="alert">
           <p>We couldn't prepare your payment. Please check your connection and try again.</p>
           <button type="button" class="btn-retry" id="retryBtn">Try again</button>
+          <button type="button" class="btn-complete mockup-pay-btn" id="mockupPayBtn">Pay with Stripe (mockup)</button>
         </div>
       </section>
 
@@ -451,19 +500,25 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 <!-- ════════════════════════════════════════════
      Client-side script
      ════════════════════════════════════════════ -->
-<script define:vars={{ charities, currencies, defaultCurrency, stripePublishableKey }}>
+<script define:vars={{ charities, currencies, countries, defaultCurrency, stripePublishableKey }}>
   // ── State ──────────────────────────────────────────────────────────────
   const state = {
     step: 1,
     destination: /** @type {'hlf'|'recommended'|'hli'|null} */ (null),
-    frequency: 'pledge',
+    frequency: 'monthly',
     currency: defaultCurrency,
     amount: null,
     pledgeIncome: null,
     pledgePct: null,
     hliPct: 10,
-    splits: Object.fromEntries(charities.map((c) => [c.id, 0])),
-    donor: { firstName: '', lastName: '', email: '', country: '', giftAid: false, anonymous: false },
+    splits: Object.fromEntries(charities.map((c) => [c.id, c.defaultSplitPct])),
+    splitLocks: Object.fromEntries(charities.map((c) => [c.id, false])),
+    donor: {
+      firstName: '', lastName: '', email: '',
+      country: '', countryCode: '',
+      addressLine1: '', addressLine2: '', city: '', state: '', postalCode: '',
+      giftAid: false, monthlyUpsellAccepted: false,
+    },
   };
 
   // ── Step sequence ───────────────────────────────────────────────────────
@@ -542,6 +597,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   }
 
   function onStepEnter(n) {
+    if (n === 2) { fitAmountSymbol('currencySymbol'); fitAmountSymbol('pledgeCurrencySymbol'); }
     if (n === 3) renderImpact();
     if (n === 5) { renderReview(); initPaymentElement(); }
   }
@@ -558,6 +614,27 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     btnNext.style.display = isLast ? 'none' : 'inline-flex';
   }
 
+  // ── Address requirements (vary by country) ────────────────────────────────
+  const US_ZIP_RE = /^\d{5}(-\d{4})?$/;
+  const CA_POSTAL_RE = /^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/;
+
+  function addressRequirements(countryCode) {
+    if (countryCode === 'GB') {
+      return { addressLine1: true, city: true, state: false, postalCode: true };
+    }
+    if (countryCode === 'US' || countryCode === 'CA') {
+      return { addressLine1: true, city: true, state: true, postalCode: true };
+    }
+    return { addressLine1: true, city: true, state: false, postalCode: false };
+  }
+
+  function postalCodeFormatValid(countryCode, value) {
+    const trimmed = value.trim();
+    if (countryCode === 'US') return US_ZIP_RE.test(trimmed);
+    if (countryCode === 'CA') return CA_POSTAL_RE.test(trimmed);
+    return true; // formats vary too much elsewhere — don't hard-block
+  }
+
   // ── Validation ──────────────────────────────────────────────────────────
   function isStepValid() {
     switch (state.step) {
@@ -565,8 +642,19 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
       case 2: return state.amount !== null && state.amount > 0;
       case 3: return true; // auto-normalizes on advance
       case 4: {
-        const { firstName, lastName, email } = state.donor;
-        return firstName.trim() && lastName.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        const { firstName, lastName, email, countryCode, addressLine1, city, state: region, postalCode } = state.donor;
+        if (!firstName.trim() || !lastName.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          return false;
+        }
+        const req = addressRequirements(countryCode);
+        if (req.addressLine1 && !addressLine1.trim()) return false;
+        if (req.city && !city.trim()) return false;
+        if (req.state && !region.trim()) return false;
+        if (req.postalCode) {
+          if (!postalCode.trim()) return false;
+          if (!postalCodeFormatValid(countryCode, postalCode)) return false;
+        }
+        return true;
       }
       default: return true;
     }
@@ -578,9 +666,18 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     return c ? c.symbol : code;
   }
 
+  function fitAmountSymbol(symbolId) {
+    const symbolEl = qs(`#${symbolId}`);
+    const input = symbolEl?.parentElement?.querySelector('input');
+    if (!symbolEl || !input) return;
+    input.style.paddingLeft = `${symbolEl.offsetWidth + 22}px`;
+  }
+
   function updateCurrencySymbol() {
     qs('#currencySymbol').textContent = getCurrencySymbol(state.currency);
     qs('#pledgeCurrencySymbol').textContent = getCurrencySymbol(state.currency);
+    fitAmountSymbol('currencySymbol');
+    fitAmountSymbol('pledgeCurrencySymbol');
     renderPresetLabels();
   }
 
@@ -622,9 +719,11 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     if (state.destination !== 'recommended' || amt <= 0) {
       wellbysEl.textContent = '—';
       deprYrsEl.textContent = '—';
-      confEl.textContent = '—';
-      confEl.className = 'impact-number impact-number--conf';
-      confEl.style.color = '';
+      if (confEl) {
+        confEl.textContent = '—';
+        confEl.className = 'impact-number impact-number--conf';
+        confEl.style.color = '';
+      }
       bkEl.innerHTML = '<p class="impact-hint">Enter an amount to see your impact.</p>';
       charities.forEach((c) => {
         const el = qs(`#outcome-${c.id}`);
@@ -637,7 +736,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
       return;
     }
 
-    const charityAmt = amt * (1 - state.hliPct / 100);
+    const charityAmt = amt;
     const totalSplits = Object.values(state.splits).reduce((s, v) => s + v, 0);
 
     let totalWellbys = 0;
@@ -667,9 +766,11 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 
     wellbysEl.textContent = fmt(totalWellbys);
     deprYrsEl.textContent = fmt(depressionYears);
-    confEl.textContent = confLabel;
-    confEl.className = 'impact-number impact-number--conf';
-    confEl.style.color = confColor;
+    if (confEl) {
+      confEl.textContent = confLabel;
+      confEl.className = 'impact-number impact-number--conf';
+      confEl.style.color = confColor;
+    }
     bkEl.innerHTML = breakdown
       .map((b) => `<div class="impact-bk-row"><span>${b.name}</span><span>${fmt(b.wellbys)} WELLBYs</span></div>`)
       .join('');
@@ -711,8 +812,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   function normalizeSplits() {
     const total = Object.values(state.splits).reduce((s, v) => s + v, 0);
     if (total === 0) {
-      const eq = 100 / charities.length;
-      charities.forEach((c) => { state.splits[c.id] = eq; });
+      charities.forEach((c) => { state.splits[c.id] = c.defaultSplitPct; });
     } else if (Math.abs(total - 100) > 0.5) {
       charities.forEach((c) => { state.splits[c.id] = (state.splits[c.id] / total) * 100; });
     }
@@ -739,19 +839,25 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     const total = Object.values(state.splits).reduce((s, v) => s + v, 0);
 
     let splits = '';
+    let hliFeeRow = '';
     if (state.destination === 'recommended') {
+      const amt = state.amount || 0;
+      const hliAmount = amt * (state.hliPct / 100);
       splits = `
         <div class="review-row"><span>HLI contribution</span><span>${state.hliPct}%</span></div>
         ${charities.map((c) => `
           <div class="review-row"><span>${c.name}</span><span>${Math.round(state.splits[c.id] / (total / 100))}%</span></div>
         `).join('')}
       `;
+      if (hliAmount > 0) {
+        hliFeeRow = `<div class="review-row"><span>HLI research fee (additional)</span><span>${sym}${hliAmount.toFixed(2)}${freq}</span></div>`;
+      }
     }
 
     let impact = '';
     if (state.destination === 'recommended') {
-      const amt = state.amount || 0;
-      const charityAmt = amt * (1 - state.hliPct / 100);
+      const amt = toUSD(state.amount || 0);
+      const charityAmt = amt;
       const totalSplits = Object.values(state.splits).reduce((s, v) => s + v, 0);
       let totalWellbys = 0;
       charities.forEach((c) => {
@@ -769,14 +875,34 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
       ? `<div class="review-row"><span>Pledge</span><span>${state.pledgePct}% of ${sym}${state.pledgeIncome.toLocaleString()}/yr</span></div>`
       : '';
 
+    const totalCharge = (state.amount || 0) + ((state.destination === 'recommended') ? (state.amount || 0) * (state.hliPct / 100) : 0);
+
+    const addressParts = [
+      state.donor.addressLine1,
+      state.donor.addressLine2,
+      state.donor.city,
+      state.donor.state,
+      state.donor.postalCode,
+      state.donor.country,
+    ].filter((part) => part && part.trim());
+    const addressDisplay = addressParts.join(', ');
+
     qs('#reviewSummary').innerHTML = `
+      <div class="review-row"><span>Name</span><span>${state.donor.firstName} ${state.donor.lastName}</span></div>
+      <div class="review-row"><span>Email</span><span>${state.donor.email}</span></div>
+      ${addressDisplay ? `<div class="review-row"><span>Address</span><span>${addressDisplay}</span></div>` : ''}
       <div class="review-row"><span>Giving to</span><span>${dest}</span></div>
       <div class="review-row"><span>Amount</span><span>${sym}${state.amount}${freq}</span></div>
       ${pledgeRow}
       ${splits}
+      ${hliFeeRow}
+      ${hliFeeRow ? `<div class="review-row review-row--total"><span>Total charge</span><span>${sym}${totalCharge.toFixed(2)}${freq}</span></div>` : ''}
       ${impact}
       ${state.donor.giftAid ? '<div class="review-row"><span>Gift Aid</span><span>✓ Claimed</span></div>' : ''}
     `;
+
+    const upsell = qs('#monthlyUpsell');
+    if (upsell) upsell.style.display = state.frequency === 'one-off' ? 'block' : 'none';
   }
 
   // ── Stripe payment ────────────────────────────────────────────────────────
@@ -958,6 +1084,42 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
       });
     });
 
+    // Step 2: amount presets (differ by frequency)
+    const PRESETS_BY_FREQ = {
+      monthly: { list: [10, 25, 50, 100, 250, 500], default: 50 },
+      'one-off': { list: [25, 50, 100, 250, 500, 1000], default: 100 },
+    };
+
+    function bindPresetButtons() {
+      qsa('.preset-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const amt = Number(btn.dataset.amount);
+          state.amount = amt;
+          qs('#amount').value = String(amt);
+          qsa('.preset-btn').forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          renderNavButtons();
+        });
+      });
+    }
+
+    function renderPresets(freq, opts = {}) {
+      const config = PRESETS_BY_FREQ[freq];
+      if (!config) return;
+      const container = qs('#presetAmounts');
+      container.dataset.freq = freq;
+      container.innerHTML = config.list
+        .map((n) => `<button type="button" class="preset-btn" data-amount="${n}">${n}</button>`)
+        .join('');
+      bindPresetButtons();
+      if (opts.applyDefault) {
+        state.amount = config.default;
+        qs('#amount').value = String(config.default);
+        const match = qs(`.preset-btn[data-amount="${config.default}"]`);
+        if (match) match.classList.add('active');
+      }
+    }
+
     // Step 2: frequency
     qsa('.freq-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -967,9 +1129,26 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
         const isPledge = state.frequency === 'pledge';
         qs('#pledgeCalculator').style.display = isPledge ? 'block' : 'none';
         qs('#manualAmountGroup').style.display = isPledge ? 'none' : 'block';
-        state.amount = null;
+        if (!isPledge) {
+          renderPresets(state.frequency, { applyDefault: true });
+        } else {
+          state.amount = null;
+        }
         renderNavButtons();
       });
+    });
+
+    // Step 2: pledge redirect link
+    qs('#pledgeRedirectLink').addEventListener('click', () => {
+      qs('.freq-btn-pledge').click();
+    });
+
+    // Step 5: monthly upsell for one-time donors
+    qs('#monthlyUpsellBtn')?.addEventListener('click', () => {
+      state.frequency = 'monthly';
+      state.donor.monthlyUpsellAccepted = true;
+      renderReview();
+      initPaymentElement();
     });
 
     // Step 2: currency
@@ -989,17 +1168,8 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
       renderNavButtons();
     });
 
-    // Step 2: preset amounts
-    qsa('.preset-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const amt = Number(btn.dataset.amount);
-        state.amount = amt;
-        qs('#amount').value = String(amt);
-        qsa('.preset-btn').forEach((b) => b.classList.remove('active'));
-        btn.classList.add('active');
-        renderNavButtons();
-      });
-    });
+    // Step 2: preset amounts (initial bind + default selection for the default frequency)
+    renderPresets(state.frequency, { applyDefault: true });
 
     // Step 2: pledge calculator
     function updatePledgeAmount() {
@@ -1062,46 +1232,241 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
       renderImpact();
     });
 
-    // Step 3: charity sliders
+    // Step 3: charity sliders — GWWC-style lock & auto-redistribute
+    function syncSliderUI(id) {
+      const slider = qs(`#range-${id}`);
+      const label = qs(`#pct-${id}`);
+      const val = Math.round(state.splits[id]);
+      if (slider) slider.value = String(val);
+      if (label) label.textContent = `${val}%`;
+    }
+
+    function syncLockUI(id) {
+      const btn = qs(`#lock-${id}`);
+      if (!btn) return;
+      const locked = state.splitLocks[id];
+      btn.classList.toggle('locked', locked);
+      btn.setAttribute('aria-pressed', String(locked));
+      btn.querySelector('.charity-lock-label').textContent = locked ? 'Unlock' : 'Lock';
+    }
+
+    function setLock(id, locked) {
+      state.splitLocks[id] = locked;
+      syncLockUI(id);
+    }
+
+    function redistributeSplits(draggedId, draggedVal) {
+      const lockedIds = charities.map((c) => c.id).filter((id) => id !== draggedId && state.splitLocks[id]);
+      const otherIds = charities.map((c) => c.id).filter((id) => id !== draggedId && !state.splitLocks[id]);
+
+      const lockedTotal = lockedIds.reduce((s, id) => s + state.splits[id], 0);
+      const maxForDragged = Math.max(0, 100 - lockedTotal);
+      const val = Math.min(draggedVal, maxForDragged);
+
+      state.splits[draggedId] = val;
+
+      const remaining = Math.max(0, 100 - val - lockedTotal);
+
+      if (otherIds.length === 0) {
+        // Nothing left to absorb the remainder — nothing to do.
+      } else if (otherIds.length === 1) {
+        state.splits[otherIds[0]] = remaining;
+      } else {
+        const otherTotal = otherIds.reduce((s, id) => s + state.splits[id], 0);
+        if (otherTotal > 0) {
+          otherIds.forEach((id) => {
+            state.splits[id] = (state.splits[id] / otherTotal) * remaining;
+          });
+        } else {
+          const share = remaining / otherIds.length;
+          otherIds.forEach((id) => { state.splits[id] = share; });
+        }
+      }
+
+      charities.forEach((c) => syncSliderUI(c.id));
+      renderSplitTotals();
+      renderImpact();
+    }
+
     charities.forEach((c) => {
       const slider = qs(`#range-${c.id}`);
-      const label = qs(`#pct-${c.id}`);
+      const lockBtn = qs(`#lock-${c.id}`);
       if (!slider) return;
+
+      slider.addEventListener('pointerdown', () => {
+        // Grabbing a locked slider unlocks it so the drag can redistribute normally.
+        if (state.splitLocks[c.id]) setLock(c.id, false);
+      });
+
       slider.addEventListener('input', () => {
-        const val = Number(slider.value);
-        state.splits[c.id] = val;
-        label.textContent = `${val}%`;
-        renderSplitTotals();
-        renderImpact();
+        const unlockedIds = charities.map((ch) => ch.id).filter((id) => !state.splitLocks[id]);
+        const isLastTwoUnlocked = unlockedIds.length <= 2;
+
+        redistributeSplits(c.id, Number(slider.value));
+
+        // Lock the dragged slider once it's set, unless it's one of the last two unlocked sliders.
+        if (!isLastTwoUnlocked) setLock(c.id, true);
+      });
+
+      lockBtn?.addEventListener('click', () => {
+        setLock(c.id, !state.splitLocks[c.id]);
       });
     });
 
+    // Step 3: HLF Split quick-set
+    const HLF_SPLIT_PCT = {
+      strongminds: 33,
+      'friendship-bench': 33,
+      'pure-earth': 20,
+      taimaka: 14,
+    };
+    qs('#hlfSplitBtn')?.addEventListener('click', () => {
+      charities.forEach((c) => {
+        state.splits[c.id] = HLF_SPLIT_PCT[c.id] ?? 0;
+        setLock(c.id, false);
+        syncSliderUI(c.id);
+      });
+      renderSplitTotals();
+      renderImpact();
+    });
+
     // Step 4: donor fields
-    ['firstName', 'lastName', 'email'].forEach((id) => {
+    ['firstName', 'lastName', 'email', 'addressLine1', 'addressLine2', 'city', 'state', 'postalCode'].forEach((id) => {
       qs(`#${id}`)?.addEventListener('input', (e) => {
         state.donor[id] = e.target.value;
         renderNavButtons();
       });
     });
 
-    qs('#country').addEventListener('change', (e) => {
-      state.donor.country = e.target.value;
+    function applyCountryRequirements(countryCode) {
+      const req = addressRequirements(countryCode);
+
+      qs('#addressLine1').required = req.addressLine1;
+      qs('#city').required = req.city;
+      qs('#state').required = req.state;
+      qs('#postalCode').required = req.postalCode;
+
+      qs('#stateOptionalTag').hidden = req.state;
+      qs('#postalOptionalTag').hidden = req.postalCode;
+
+      const addressNote = qs('#addressLine1Note');
+      addressNote.hidden = countryCode !== 'GB';
+
+      const postalNote = qs('#postalCodeNote');
+      if (countryCode === 'US') {
+        postalNote.textContent = 'Format: 5 digits, e.g. 94103 (or 94103-1234).';
+        postalNote.hidden = false;
+      } else if (countryCode === 'CA') {
+        postalNote.textContent = 'Format: A1A 1A1.';
+        postalNote.hidden = false;
+      } else {
+        postalNote.hidden = true;
+      }
+
       const giftAidSection = qs('#giftAidSection');
-      if (e.target.value === 'GB') {
+      if (countryCode === 'GB') {
         giftAidSection.removeAttribute('hidden');
       } else {
         giftAidSection.setAttribute('hidden', '');
         qs('#giftAid').checked = false;
         state.donor.giftAid = false;
       }
+    }
+
+    // Step 4: country combobox (custom — native <datalist> can't be positioned/styled)
+    const countryInput = qs('#country');
+    const countryList = qs('#countryOptions');
+    let countryActiveIndex = -1;
+    let countryFiltered = [];
+
+    function selectCountry(country) {
+      countryInput.value = country ? country.name : countryInput.value;
+      state.donor.country = countryInput.value;
+      state.donor.countryCode = country ? country.code : '';
+      applyCountryRequirements(state.donor.countryCode);
+      closeCountryList();
+      renderNavButtons();
+    }
+
+    function closeCountryList() {
+      countryList.hidden = true;
+      countryInput.setAttribute('aria-expanded', 'false');
+      countryActiveIndex = -1;
+    }
+
+    function renderCountryList(query) {
+      const q = query.trim().toLowerCase();
+      countryFiltered = q
+        ? countries.filter((c) => c.name.toLowerCase().includes(q))
+        : countries;
+
+      if (!countryFiltered.length) {
+        closeCountryList();
+        return;
+      }
+
+      countryList.innerHTML = countryFiltered
+        .map((c, i) => `<li role="option" data-index="${i}" id="country-opt-${i}">${c.name}</li>`)
+        .join('');
+      countryList.hidden = false;
+      countryInput.setAttribute('aria-expanded', 'true');
+      countryActiveIndex = -1;
+    }
+
+    function highlightCountryOption(index) {
+      qsa('.country-options li').forEach((li) => li.classList.remove('active'));
+      if (index >= 0) {
+        const el = qs(`#country-opt-${index}`);
+        el?.classList.add('active');
+        el?.scrollIntoView({ block: 'nearest' });
+      }
+      countryActiveIndex = index;
+    }
+
+    countryInput.addEventListener('input', (e) => {
+      const typedName = e.target.value;
+      const exactMatch = countries.find((c) => c.name === typedName);
+      state.donor.country = typedName;
+      state.donor.countryCode = exactMatch ? exactMatch.code : '';
+      applyCountryRequirements(state.donor.countryCode);
+      renderNavButtons();
+      renderCountryList(typedName);
+    });
+
+    countryInput.addEventListener('focus', () => {
+      renderCountryList(countryInput.value);
+    });
+
+    countryInput.addEventListener('keydown', (e) => {
+      if (countryList.hidden && e.key !== 'Escape') return;
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        highlightCountryOption(Math.min(countryActiveIndex + 1, countryFiltered.length - 1));
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        highlightCountryOption(Math.max(countryActiveIndex - 1, 0));
+      } else if (e.key === 'Enter') {
+        if (countryActiveIndex >= 0) {
+          e.preventDefault();
+          selectCountry(countryFiltered[countryActiveIndex]);
+        }
+      } else if (e.key === 'Escape') {
+        closeCountryList();
+      }
+    });
+
+    countryList.addEventListener('click', (e) => {
+      const li = e.target.closest('li[data-index]');
+      if (!li) return;
+      selectCountry(countryFiltered[Number(li.dataset.index)]);
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!qs('#countryCombobox').contains(e.target)) closeCountryList();
     });
 
     qs('#giftAid').addEventListener('change', (e) => {
       state.donor.giftAid = e.target.checked;
-    });
-
-    qs('#anonymous').addEventListener('change', (e) => {
-      state.donor.anonymous = e.target.checked;
     });
 
     // Back / Next
@@ -1126,6 +1491,11 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 
     // Retry button (shown if API call fails)
     qs('#retryBtn').addEventListener('click', () => initPaymentElement());
+
+    // Mockup-only bypass — lets reviewers reach /success without live Stripe keys configured
+    qs('#mockupPayBtn')?.addEventListener('click', () => {
+      window.location.href = '/success';
+    });
 
     // Prevent info-btn clicks inside option-card labels from triggering radio selection
     qsa('.option-card .info-btn').forEach((btn) => {
@@ -1197,6 +1567,27 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
           setTimeout(() => el?.classList.remove('error'), 2000);
         }
       });
+
+      const req = addressRequirements(state.donor.countryCode);
+      if (req.addressLine1 && !qs('#addressLine1').value.trim()) {
+        qs('#addressLine1').classList.add('error');
+        setTimeout(() => qs('#addressLine1').classList.remove('error'), 2000);
+      }
+      if (req.city && !qs('#city').value.trim()) {
+        qs('#city').classList.add('error');
+        setTimeout(() => qs('#city').classList.remove('error'), 2000);
+      }
+      if (req.state && !qs('#state').value.trim()) {
+        qs('#state').classList.add('error');
+        setTimeout(() => qs('#state').classList.remove('error'), 2000);
+      }
+      if (req.postalCode) {
+        const postalEl = qs('#postalCode');
+        if (!postalEl.value.trim() || !postalCodeFormatValid(state.donor.countryCode, postalEl.value)) {
+          postalEl.classList.add('error');
+          setTimeout(() => postalEl.classList.remove('error'), 2000);
+        }
+      }
     }
   }
 
@@ -1224,22 +1615,14 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   /* ── Header ── */
   .page-header {
     display: flex;
-    align-items: center;
-    gap: 12px;
+    justify-content: center;
     margin-bottom: 32px;
   }
 
   .logo {
-    height: 40px;
+    height: 36px;
     width: auto;
     object-fit: contain;
-  }
-
-  .header-subtitle {
-    font-size: 0.875rem;
-    color: var(--color-text-secondary);
-    border-left: 1px solid var(--color-border);
-    padding-left: 12px;
   }
 
   /* ── Progress bar ── */
@@ -1535,6 +1918,23 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
   }
 
+  .pledge-redirect-link {
+    display: block;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0 0 20px;
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary);
+    text-decoration: underline;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .pledge-redirect-link:hover {
+    color: var(--color-primary);
+  }
+
   /* ── Amount row (Step 2) ── */
   .amount-row {
     display: flex;
@@ -1542,12 +1942,16 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     margin-bottom: 16px;
   }
 
+  .currency-wrapper {
+    margin-bottom: 16px;
+  }
+
   .currency-wrapper select {
     height: 52px;
     padding: 0 10px;
-    border: 1.5px solid var(--color-border);
+    border: 1.5px solid var(--color-primary);
     border-radius: var(--radius-sm);
-    background: var(--color-bg);
+    background: var(--color-primary-light);
     font-size: 0.9375rem;
     cursor: pointer;
     transition: border-color var(--transition);
@@ -1601,7 +2005,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     margin-bottom: 8px;
   }
 
-  .preset-btn {
+  :global(.preset-btn) {
     padding: 8px 16px;
     border: 1.5px solid var(--color-border);
     border-radius: 20px;
@@ -1613,12 +2017,12 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     cursor: pointer;
   }
 
-  .preset-btn:hover {
+  :global(.preset-btn:hover) {
     border-color: var(--color-primary);
     color: var(--color-primary);
   }
 
-  .preset-btn.active {
+  :global(.preset-btn.active) {
     background: var(--color-primary);
     border-color: var(--color-primary);
     color: var(--color-white);
@@ -1753,6 +2157,37 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     border-color: var(--color-primary);
   }
 
+  .hli-contrib-subnote {
+    margin: 10px 0 0;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--color-text-secondary);
+  }
+
+  .hli-contrib-fee-note {
+    font-style: italic;
+  }
+
+  .hlf-split-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 16px;
+    margin-bottom: 16px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 20px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    background: var(--color-white);
+    cursor: pointer;
+    transition: all var(--transition);
+  }
+
+  .hlf-split-btn:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+
   /* ── Charity sliders (Step 3) ── */
   .charity-splits {
     display: flex;
@@ -1809,6 +2244,52 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     color: var(--color-primary);
     min-width: 40px;
     text-align: right;
+  }
+
+  .charity-lock-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 20px;
+    background: var(--color-white);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all var(--transition);
+    flex-shrink: 0;
+  }
+
+  .charity-lock-btn:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+
+  .charity-lock-btn.locked {
+    background: var(--color-primary-light);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+
+  .charity-lock-icon {
+    width: 13px;
+    height: 13px;
+    color: var(--color-primary);
+    flex-shrink: 0;
+  }
+
+  .charity-lock-icon--closed {
+    display: none;
+  }
+
+  .charity-lock-btn.locked .charity-lock-icon--open {
+    display: none;
+  }
+
+  .charity-lock-btn.locked .charity-lock-icon--closed {
+    display: block;
   }
 
   .charity-range {
@@ -2047,6 +2528,52 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     border-color: var(--color-error);
   }
 
+  .field-optional {
+    font-weight: 400;
+    color: var(--color-text-secondary);
+    opacity: 0.75;
+  }
+
+  .field-note {
+    margin: 2px 0 0;
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+  }
+
+  .country-combobox {
+    position: relative;
+  }
+
+  .country-options {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    max-height: 240px;
+    overflow-y: auto;
+    margin: 0;
+    padding: 6px;
+    list-style: none;
+    background: var(--color-white);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-md);
+    z-index: 20;
+  }
+
+  .country-options li {
+    padding: 8px 10px;
+    border-radius: var(--radius-xs);
+    font-size: 0.9375rem;
+    color: var(--color-text);
+    cursor: pointer;
+  }
+
+  .country-options li:hover,
+  .country-options li.active {
+    background: var(--color-primary-light);
+  }
+
   /* ── Gift Aid card (Step 4) ── */
   .gift-aid-card {
     background: var(--color-bg-card);
@@ -2088,13 +2615,9 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     cursor: pointer;
   }
 
-  .anonymous-label {
-    margin-top: 4px;
-  }
-
   /* ── Review (Step 5) ── */
   .review-summary {
-    background: var(--color-bg);
+    background: var(--color-white);
     border: 1px solid var(--color-border);
     border-radius: var(--radius);
     overflow: hidden;
@@ -2128,27 +2651,40 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     color: var(--color-primary);
   }
 
-  /* ── Trust signals ── */
-  .trust-signals {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-bottom: 24px;
+  :global(.review-row--total) {
+    background: var(--color-bg);
+    font-weight: 700;
   }
 
-  .trust-signal {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 0.875rem;
-    color: var(--color-text-secondary);
+  :global(.review-row--total span:first-child) {
+    color: var(--color-text);
+    font-weight: 700;
   }
 
-  .trust-icon {
-    font-size: 1rem;
-    width: 24px;
+  /* ── Monthly upsell (Step 5) ── */
+  .monthly-upsell {
+    background: var(--color-primary-light);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 20px;
     text-align: center;
-    flex-shrink: 0;
+  }
+
+  .monthly-upsell p {
+    margin: 0 0 10px;
+    font-size: 0.875rem;
+    color: var(--color-text);
+  }
+
+  .monthly-upsell-btn {
+    background: var(--color-primary);
+    color: var(--color-white);
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 8px 18px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
   }
 
   .btn-complete {
@@ -2200,7 +2736,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   .btn-back {
     background: transparent;
     color: var(--color-text-secondary);
-    border: 1.5px solid var(--color-border);
+    border: none;
   }
 
   .btn-back:hover {
@@ -2299,6 +2835,15 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     background: var(--color-primary-dark);
   }
 
+  .mockup-pay-btn {
+    display: block;
+    width: 100%;
+    max-width: 280px;
+    margin: 12px auto 0;
+    border: 1.5px dashed var(--color-border-strong);
+    background: var(--color-yellow);
+  }
+
   .btn-complete:disabled {
     opacity: 0.55;
     cursor: not-allowed;
@@ -2319,7 +2864,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
       gap: 6px;
     }
 
-    .preset-btn {
+    :global(.preset-btn) {
       padding: 7px 12px;
       font-size: 0.875rem;
     }

@@ -32,8 +32,8 @@ export default async function handler(req, res) {
   const { amount, currency, frequency, donor, destination, splits, hliPct } = req.body ?? {};
 
   // ── Validation ──────────────────────────────────────────────────────────
-  const amountNum = Number(amount);
-  if (!amount || !isFinite(amountNum) || amountNum <= 0) {
+  const donationAmount = Number(amount);
+  if (!amount || !isFinite(donationAmount) || donationAmount <= 0) {
     return res.status(400).json({ error: 'Invalid amount' });
   }
   if (!currency || typeof currency !== 'string') {
@@ -46,8 +46,14 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid email address' });
   }
 
+  // HLI's research contribution is charged in addition to the donation,
+  // not deducted from it — only applies to the "recommended" (own-allocation) destination.
+  const hliPctNum = destination === 'recommended' ? Number(hliPct) || 0 : 0;
+  const hliAmount = donationAmount * (hliPctNum / 100);
+  const totalAmount = donationAmount + hliAmount;
+
   const currencyUpper = currency.toUpperCase();
-  const amountInt = toSmallestUnit(amountNum, currencyUpper);
+  const amountInt = toSmallestUnit(totalAmount, currencyUpper);
   const minAmount = MIN_AMOUNTS[currencyUpper] ?? 50;
 
   if (amountInt < minAmount) {
@@ -56,16 +62,24 @@ export default async function handler(req, res) {
 
   // ── Shared metadata ──────────────────────────────────────────────────────
   const metadata = {
-    destination:    destination ?? '',
+    destination:     destination ?? '',
     frequency,
-    hliPct:         String(hliPct ?? 0),
-    splits:         JSON.stringify(splits ?? {}),
-    donorFirstName: donor.firstName ?? '',
-    donorLastName:  donor.lastName  ?? '',
-    donorEmail:     donor.email,
-    donorCountry:   donor.country   ?? '',
-    giftAid:        String(donor.giftAid  ?? false),
-    anonymous:      String(donor.anonymous ?? false),
+    donationAmount:  String(donationAmount),
+    hliPct:          String(hliPctNum),
+    hliAmount:       String(hliAmount),
+    splits:          JSON.stringify(splits ?? {}),
+    donorFirstName:  donor.firstName ?? '',
+    donorLastName:   donor.lastName  ?? '',
+    donorEmail:      donor.email,
+    donorAddressLine1: donor.addressLine1 ?? '',
+    donorAddressLine2: donor.addressLine2 ?? '',
+    donorCity:       donor.city ?? '',
+    donorState:      donor.state ?? '',
+    donorPostalCode: donor.postalCode ?? '',
+    donorCountry:    donor.country     ?? '',
+    donorCountryCode: donor.countryCode ?? '',
+    giftAid:         String(donor.giftAid  ?? false),
+    monthlyUpsellAccepted: String(donor.monthlyUpsellAccepted ?? false),
   };
 
   const donorName = `${donor.firstName ?? ''} ${donor.lastName ?? ''}`.trim() || undefined;
