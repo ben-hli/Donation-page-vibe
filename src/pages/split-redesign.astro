@@ -145,10 +145,92 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 
       <!-- ── Step 3: Split (Recommended Charities only) ── -->
       <section class="step" id="step-3" aria-labelledby="step3-title">
-        <h2 id="step3-title" class="step-title">How would you like to split your donation?</h2>
-        <p class="step-desc">Adjust the sliders to divide your gift between the charities.</p>
+        <h2 id="step3-title" class="step-title">Choose your charities</h2>
+        <p class="step-desc">Add the charities you'd like to support. Your gift will be split equally between the ones you choose — you can then fine-tune the split below.</p>
 
-        <!-- HLI contribution stepped selector -->
+        <!-- Charity picker cards -->
+        <div class="charity-picker-grid" id="charityPickerGrid">
+          {charities.map((c) => (
+            <div class="charity-picker-card" data-charity-id={c.id}>
+              <div class="charity-picker-logo">
+                {c.logoUrl
+                  ? <img src={c.logoUrl} alt={`${c.name} logo`} />
+                  : <span class="charity-picker-logo-fallback" aria-hidden="true">{c.name.charAt(0)}</span>
+                }
+              </div>
+              <div class="charity-picker-body">
+                <div class="charity-picker-name-row">
+                  <span class="charity-name">{c.name}</span>
+                  <span class={`charity-tier-badge charity-tier-badge--${c.tier}`}>
+                    {c.tier === 'top' ? 'Top Charity' : 'Promising'}
+                  </span>
+                </div>
+                <p class="charity-picker-desc">{c.shortDescription}</p>
+                <a
+                  class="charity-picker-report-link"
+                  href={c.reportUrl ?? c.website}
+                  target="_blank"
+                  rel="noopener"
+                >Read our report →</a>
+                <div class="charity-picker-stats">
+                  <span class="charity-picker-stat" id={`effectiveness-${c.id}`}></span>
+                  <span class="charity-picker-stat" id={`confidence-${c.id}`}></span>
+                </div>
+              </div>
+              <button
+                type="button"
+                class="charity-add-btn"
+                id={`add-${c.id}`}
+                aria-pressed="false"
+                aria-label={`Add ${c.name} to your split`}
+              >
+                <svg class="charity-add-icon charity-add-icon--plus" aria-hidden="true" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"/>
+                </svg>
+                <svg class="charity-add-icon charity-add-icon--check" aria-hidden="true" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <!-- Charity split sliders — populated by JS as charities are added -->
+        <div class="charity-splits" id="charitySplits"></div>
+
+        <div class="split-total" id="splitTotal" hidden>
+          <span>Total: </span><span id="splitTotalPct">100%</span>
+          <span class="split-total-note" id="splitTotalNote"></span>
+        </div>
+
+        <!-- Impact calculator -->
+        <div class="impact-card">
+          <div class="impact-header-row">
+            <span class="impact-heading">Estimated impact</span>
+            <button
+              type="button"
+              class="info-btn"
+              aria-label="About this estimate"
+              data-tooltip="WELLBYs (Wellbeing-Adjusted Life Years) measure the wellbeing impact of your donation using HLI's cost-per-WELLBY estimates. Depression years averted = WELLBYs ÷ 1.3. Confidence score reflects the depth and quality of evidence behind each charity's estimate, weighted by your allocation."
+            >ⓘ</button>
+          </div>
+          <div class="impact-metrics impact-metrics--two">
+            <div class="impact-metric">
+              <div class="impact-number" id="impactWellbys">—</div>
+              <div class="impact-desc">WELLBYs generated</div>
+            </div>
+            <div class="impact-metric impact-metric--secondary">
+              <div class="impact-number" id="impactDepressionYears">—</div>
+              <div class="impact-desc">years of depression averted</div>
+            </div>
+          </div>
+          <div class="impact-breakdown" id="impactBreakdown"></div>
+        </div>
+
+        <!-- Outcome cards — populated by JS as charities are added -->
+        <div class="outcome-cards" id="outcomeCards"></div>
+
+        <!-- HLI contribution stepped selector — moved to the bottom of the step -->
         <div class="hli-contrib-card">
           <div class="hli-contrib-header">
             <span class="hli-contrib-label">Contribution to HLI's research</span>
@@ -204,160 +286,6 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
             This contribution is charged in addition to your donation and does not reduce the amount your chosen charities receive.
           </p>
         </div>
-
-        <button type="button" class="hlf-split-btn" id="hlfSplitBtn">HLF Split</button>
-
-        <!-- Charity split sliders -->
-        <div class="charity-splits" id="charitySplits">
-          {charities.map((c, i) => (
-            <div class="charity-slider-row" data-charity-id={c.id}>
-              <div class="charity-slider-header">
-                <div class="charity-info">
-                  <span class="charity-name">{c.name}</span>
-                  <span class={`charity-tier-badge charity-tier-badge--${c.tier}`}>
-                    {c.tier === 'top' ? 'Top Charity' : 'Promising'}
-                  </span>
-                  <button
-                    type="button"
-                    class="info-btn"
-                    aria-label={`More about ${c.name}`}
-                    data-tooltip={c.fullDescription}
-                  >ⓘ</button>
-                </div>
-                <span class="charity-pct-label" id={`pct-${c.id}`}>{Math.round(c.defaultSplitPct)}%</span>
-                <button
-                  type="button"
-                  class="charity-lock-btn"
-                  id={`lock-${c.id}`}
-                  aria-pressed="false"
-                  aria-label={`Lock ${c.name} percentage`}
-                >
-                  <svg class="charity-lock-icon charity-lock-icon--open" aria-hidden="true" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor"/>
-                    <path d="M8 11V7a4 4 0 0 1 7.5-1.94" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
-                  </svg>
-                  <svg class="charity-lock-icon charity-lock-icon--closed" aria-hidden="true" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor"/>
-                    <path d="M8 11V7a4 4 0 1 1 8 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
-                  </svg>
-                  <span class="charity-lock-label">Lock</span>
-                </button>
-              </div>
-              <input
-                type="range"
-                class="charity-range"
-                id={`range-${c.id}`}
-                min="0"
-                max="100"
-                value={Math.round(c.defaultSplitPct)}
-                step="1"
-                aria-label={`${c.name} percentage`}
-                aria-valuemin="0"
-                aria-valuemax="100"
-                aria-valuenow={Math.round(c.defaultSplitPct)}
-              />
-            </div>
-          ))}
-        </div>
-
-        <div class="split-total" id="splitTotal">
-          <span>Total: </span><span id="splitTotalPct">100%</span>
-          <span class="split-total-note" id="splitTotalNote"></span>
-        </div>
-
-        <!-- Impact calculator -->
-        <div class="impact-card">
-          <div class="impact-header-row">
-            <span class="impact-heading">Estimated impact</span>
-            <button
-              type="button"
-              class="info-btn"
-              aria-label="About this estimate"
-              data-tooltip="WELLBYs (Wellbeing-Adjusted Life Years) measure the wellbeing impact of your donation using HLI's cost-per-WELLBY estimates. Depression years averted = WELLBYs ÷ 1.3. Confidence score reflects the depth and quality of evidence behind each charity's estimate, weighted by your allocation."
-            >ⓘ</button>
-          </div>
-          <div class="impact-metrics impact-metrics--two">
-            <div class="impact-metric">
-              <div class="impact-number" id="impactWellbys">—</div>
-              <div class="impact-desc">WELLBYs generated</div>
-            </div>
-            <div class="impact-metric impact-metric--secondary">
-              <div class="impact-number" id="impactDepressionYears">—</div>
-              <div class="impact-desc">years of depression averted</div>
-            </div>
-            <!-- Evidence confidence / risk score — disabled for now, code kept for later re-enable
-            <div class="impact-metric impact-metric--secondary">
-              <div class="impact-number" id="impactConfidence">—</div>
-              <div class="impact-desc">evidence confidence</div>
-            </div>
-            -->
-          </div>
-          <div class="impact-breakdown" id="impactBreakdown"></div>
-        </div>
-
-        <!-- Outcome cards -->
-        <div class="outcome-cards">
-          <div class="outcome-card">
-            <svg class="outcome-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <!-- Person -->
-              <circle cx="9" cy="7" r="3"/>
-              <path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
-              <!-- Speech bubble -->
-              <path d="M16 8h4a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-1l-2 2v-2h-1a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/>
-            </svg>
-            <div class="outcome-number" id="outcome-strongminds">—</div>
-            <div class="outcome-label">One-to-one psychotherapy courses funded</div>
-          </div>
-          <div class="outcome-card">
-            <svg class="outcome-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <!-- Three people -->
-              <circle cx="9" cy="7" r="2.5"/>
-              <path d="M4 21v-1.5A3.5 3.5 0 0 1 7.5 16h3A3.5 3.5 0 0 1 14 19.5V21"/>
-              <circle cx="17" cy="8" r="2"/>
-              <path d="M15 21v-1a3 3 0 0 1 3-3h0a3 3 0 0 1 3 3v1"/>
-            </svg>
-            <div class="outcome-number" id="outcome-friendship-bench">—</div>
-            <div class="outcome-label">Group psychotherapy courses funded</div>
-          </div>
-          <div class="outcome-card">
-            <svg class="outcome-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <!-- Shield with checkmark -->
-              <path d="M12 3l8 3.5v5C20 16.4 16.6 21 12 22 7.4 21 4 16.4 4 11.5v-5L12 3z"/>
-              <polyline points="9 12 11 14 15 10"/>
-            </svg>
-            <div class="outcome-number" id="outcome-pure-earth">—</div>
-            <div class="outcome-label">Children protected from lead exposure</div>
-          </div>
-          <div class="outcome-card">
-            <svg class="outcome-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <!-- Bowl with food -->
-              <path d="M4 11h16"/>
-              <path d="M5 11a7 7 0 0 0 14 0"/>
-              <path d="M12 4c-1.5 0-2.5 1-2.5 2s1 1.5 1 2.5"/>
-              <path d="M15 4c1 .5 1.5 1.5 1.5 2.5 0 .8-.4 1.5-1 2"/>
-            </svg>
-            <div class="outcome-number" id="outcome-taimaka">—</div>
-            <div class="outcome-label">Children protected from malnutrition</div>
-          </div>
-        </div>
-
-        <!-- "Putting your impact in context" — disabled for now, code kept for later re-enable
-        <div class="impact-context-card">
-          <div class="impact-header-row">
-            <span class="impact-heading">Putting your impact in context</span>
-          </div>
-          <div class="impact-metrics impact-metrics--two">
-            <div class="impact-metric">
-              <div class="impact-number" id="contextTreasuryValue">—</div>
-              <div class="impact-desc">UK Treasury value of wellbeing created</div>
-            </div>
-            <div class="impact-metric impact-metric--secondary">
-              <div class="impact-number" id="contextStandardCharity">—</div>
-              <div class="impact-desc">equivalent donation to a standard charity</div>
-            </div>
-          </div>
-        </div>
-        -->
       </section>
 
       <!-- ── Step 4: About you ── -->
@@ -511,8 +439,9 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     pledgeIncome: null,
     pledgePct: null,
     hliPct: 10,
-    splits: Object.fromEntries(charities.map((c) => [c.id, c.defaultSplitPct])),
-    splitLocks: Object.fromEntries(charities.map((c) => [c.id, false])),
+    addedCharityIds: [],
+    splits: {},
+    splitLocks: {},
     donor: {
       firstName: '', lastName: '', email: '',
       country: '', countryCode: '',
@@ -640,7 +569,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     switch (state.step) {
       case 1: return state.destination !== null;
       case 2: return state.amount !== null && state.amount > 0;
-      case 3: return true; // auto-normalizes on advance
+      case 3: return state.addedCharityIds.length > 0;
       case 4: {
         const { firstName, lastName, email, countryCode, addressLine1, city, state: region, postalCode } = state.donor;
         if (!firstName.trim() || !lastName.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -708,75 +637,75 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   }
 
   // ── Impact calculator ────────────────────────────────────────────────────
+  const fmt = (n) => n < 1 ? n.toFixed(2) : n < 100 ? n.toFixed(1) : Math.round(n).toLocaleString();
+
+  function confidenceLabel(score) {
+    if (score >= 9)        return { label: 'Very Low Risk',  color: '#1a4d2e' };
+    if (score > 7.5)       return { label: 'Low Risk',       color: '#2d6040' };
+    if (score >= 6.5)      return { label: 'Medium Risk',    color: '#c17f3a' };
+    if (score >= 5)        return { label: 'High Risk',      color: '#c0392b' };
+    return                        { label: 'Very High Risk', color: '#7b1c1c' };
+  }
+
+  function addedCharities() {
+    return state.addedCharityIds.map((id) => charities.find((c) => c.id === id)).filter(Boolean);
+  }
+
+  function renderOutcomeCards() {
+    const container = qs('#outcomeCards');
+    if (!container) return;
+    container.innerHTML = addedCharities()
+      .map((c) => `
+        <div class="outcome-card">
+          <div class="outcome-number" id="outcome-${c.id}">—</div>
+          <div class="outcome-label">${c.outcomeLabel}</div>
+        </div>
+      `)
+      .join('');
+  }
+
   function renderImpact() {
     const amt = toUSD(state.amount || 0);
-    let years = 0;
     const wellbysEl = qs('#impactWellbys');
     const deprYrsEl = qs('#impactDepressionYears');
-    const confEl = qs('#impactConfidence');
     const bkEl = qs('#impactBreakdown');
+    const added = addedCharities();
 
-    if (state.destination !== 'recommended' || amt <= 0) {
+    if (state.destination !== 'recommended' || amt <= 0 || added.length === 0) {
       wellbysEl.textContent = '—';
       deprYrsEl.textContent = '—';
-      if (confEl) {
-        confEl.textContent = '—';
-        confEl.className = 'impact-number impact-number--conf';
-        confEl.style.color = '';
-      }
-      bkEl.innerHTML = '<p class="impact-hint">Enter an amount to see your impact.</p>';
-      charities.forEach((c) => {
+      bkEl.innerHTML = '<p class="impact-hint">Add a charity and enter an amount to see your impact.</p>';
+      added.forEach((c) => {
         const el = qs(`#outcome-${c.id}`);
         if (el) el.textContent = '—';
       });
-      const tvEl = qs('#contextTreasuryValue');
-      const scEl = qs('#contextStandardCharity');
-      if (tvEl) tvEl.textContent = '—';
-      if (scEl) scEl.textContent = '—';
       return;
     }
 
     const charityAmt = amt;
-    const totalSplits = Object.values(state.splits).reduce((s, v) => s + v, 0);
+    const totalSplits = added.reduce((s, c) => s + (state.splits[c.id] || 0), 0);
 
     let totalWellbys = 0;
-    let totalConfidence = 0;
     const breakdown = [];
 
-    charities.forEach((c) => {
+    added.forEach((c) => {
       const fraction = totalSplits > 0 ? state.splits[c.id] / totalSplits : 0;
       const allocated = charityAmt * fraction;
       const wellbys = allocated / c.costPerWellby;
       totalWellbys += wellbys;
-      totalConfidence += c.confidenceScore * fraction;
       if (wellbys > 0) breakdown.push({ name: c.name, wellbys });
     });
 
     const depressionYears = totalWellbys / 1.3;
 
-    const fmt = (n) => n < 1 ? n.toFixed(2) : n < 100 ? n.toFixed(1) : Math.round(n).toLocaleString();
-
-    let confLabel, confClass;
-    let confColor;
-    if (totalConfidence >= 9)        { confLabel = 'Very Low Risk';  confColor = '#1a4d2e'; }
-    else if (totalConfidence > 7.5)  { confLabel = 'Low Risk';       confColor = '#2d6040'; }
-    else if (totalConfidence >= 6.5) { confLabel = 'Medium Risk';    confColor = '#c17f3a'; }
-    else if (totalConfidence >= 5)   { confLabel = 'High Risk';      confColor = '#c0392b'; }
-    else                             { confLabel = 'Very High Risk'; confColor = '#7b1c1c'; }
-
     wellbysEl.textContent = fmt(totalWellbys);
     deprYrsEl.textContent = fmt(depressionYears);
-    if (confEl) {
-      confEl.textContent = confLabel;
-      confEl.className = 'impact-number impact-number--conf';
-      confEl.style.color = confColor;
-    }
     bkEl.innerHTML = breakdown
       .map((b) => `<div class="impact-bk-row"><span>${b.name}</span><span>${fmt(b.wellbys)} WELLBYs</span></div>`)
       .join('');
 
     // Outcome cards
-    charities.forEach((c) => {
+    added.forEach((c) => {
       const el = qs(`#outcome-${c.id}`);
       if (!el) return;
       const fraction = totalSplits > 0 ? state.splits[c.id] / totalSplits : 0;
@@ -784,18 +713,17 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
       const outcomes = allocated / c.costPerOutcome;
       el.textContent = outcomes > 0 ? fmt(outcomes) : '—';
     });
-
-    // Context section — convert USD base values back to selected currency for display
-    const rate = fxRates[state.currency] || 1;
-    const currSym = getCurrencySymbol(state.currency);
-    const tvEl = qs('#contextTreasuryValue');
-    const scEl = qs('#contextStandardCharity');
-    if (tvEl) tvEl.textContent = currSym + fmt(totalWellbys * 22258.36 * rate);
-    if (scEl) scEl.textContent = currSym + fmt(totalWellbys * 17366.90 * rate);
   }
 
   // ── Split sliders ────────────────────────────────────────────────────────
   function renderSplitTotals() {
+    const splitTotalRow = qs('#splitTotal');
+    if (state.addedCharityIds.length === 0) {
+      if (splitTotalRow) splitTotalRow.hidden = true;
+      return;
+    }
+    if (splitTotalRow) splitTotalRow.hidden = false;
+
     const total = Object.values(state.splits).reduce((s, v) => s + v, 0);
     const el = qs('#splitTotalPct');
     const note = qs('#splitTotalNote');
@@ -810,19 +738,17 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   }
 
   function normalizeSplits() {
+    const added = addedCharities();
+    if (added.length === 0) return;
     const total = Object.values(state.splits).reduce((s, v) => s + v, 0);
     if (total === 0) {
-      charities.forEach((c) => { state.splits[c.id] = c.defaultSplitPct; });
+      const share = 100 / added.length;
+      added.forEach((c) => { state.splits[c.id] = share; });
     } else if (Math.abs(total - 100) > 0.5) {
-      charities.forEach((c) => { state.splits[c.id] = (state.splits[c.id] / total) * 100; });
+      added.forEach((c) => { state.splits[c.id] = (state.splits[c.id] / total) * 100; });
     }
     // Sync sliders to normalized values
-    charities.forEach((c) => {
-      const slider = qs(`#range-${c.id}`);
-      const label = qs(`#pct-${c.id}`);
-      if (slider) slider.value = String(Math.round(state.splits[c.id]));
-      if (label) label.textContent = `${Math.round(state.splits[c.id])}%`;
-    });
+    added.forEach((c) => syncSliderUI(c.id));
     renderSplitTotals();
     renderImpact();
   }
@@ -845,7 +771,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
       const hliAmount = amt * (state.hliPct / 100);
       splits = `
         <div class="review-row"><span>HLI contribution</span><span>${state.hliPct}%</span></div>
-        ${charities.map((c) => `
+        ${addedCharities().map((c) => `
           <div class="review-row"><span>${c.name}</span><span>${Math.round(state.splits[c.id] / (total / 100))}%</span></div>
         `).join('')}
       `;
@@ -860,13 +786,12 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
       const charityAmt = amt;
       const totalSplits = Object.values(state.splits).reduce((s, v) => s + v, 0);
       let totalWellbys = 0;
-      charities.forEach((c) => {
+      addedCharities().forEach((c) => {
         const fraction = totalSplits > 0 ? state.splits[c.id] / totalSplits : 0;
         totalWellbys += (charityAmt * fraction) / c.costPerWellby;
       });
       const deprYrs = totalWellbys / 1.3;
       if (totalWellbys > 0) {
-        const fmt = (n) => n < 1 ? n.toFixed(2) : n < 100 ? n.toFixed(1) : Math.round(n).toLocaleString();
         impact = `<div class="review-row impact-row"><span>Estimated impact</span><span>${fmt(totalWellbys)} WELLBYs · ${fmt(deprYrs)} yrs depression averted</span></div>`;
       }
     }
@@ -1256,8 +1181,9 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     }
 
     function redistributeSplits(draggedId, draggedVal) {
-      const lockedIds = charities.map((c) => c.id).filter((id) => id !== draggedId && state.splitLocks[id]);
-      const otherIds = charities.map((c) => c.id).filter((id) => id !== draggedId && !state.splitLocks[id]);
+      const addedIds = state.addedCharityIds;
+      const lockedIds = addedIds.filter((id) => id !== draggedId && state.splitLocks[id]);
+      const otherIds = addedIds.filter((id) => id !== draggedId && !state.splitLocks[id]);
 
       const lockedTotal = lockedIds.reduce((s, id) => s + state.splits[id], 0);
       const maxForDragged = Math.max(0, 100 - lockedTotal);
@@ -1283,12 +1209,64 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
         }
       }
 
-      charities.forEach((c) => syncSliderUI(c.id));
+      addedIds.forEach((id) => syncSliderUI(id));
       renderSplitTotals();
       renderImpact();
     }
 
-    charities.forEach((c) => {
+    function sliderRowHtml(c) {
+      return `
+        <div class="charity-slider-row" data-charity-id="${c.id}">
+          <div class="charity-slider-header">
+            <div class="charity-info">
+              <span class="charity-name">${c.name}</span>
+              <span class="charity-tier-badge charity-tier-badge--${c.tier}">
+                ${c.tier === 'top' ? 'Top Charity' : 'Promising'}
+              </span>
+              <button
+                type="button"
+                class="info-btn"
+                aria-label="More about ${c.name}"
+                data-tooltip="${c.fullDescription.replace(/"/g, '&quot;')}"
+              >ⓘ</button>
+            </div>
+            <span class="charity-pct-label" id="pct-${c.id}">0%</span>
+            <button
+              type="button"
+              class="charity-lock-btn"
+              id="lock-${c.id}"
+              aria-pressed="false"
+              aria-label="Lock ${c.name} percentage"
+            >
+              <svg class="charity-lock-icon charity-lock-icon--open" aria-hidden="true" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor"/>
+                <path d="M8 11V7a4 4 0 0 1 7.5-1.94" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+              </svg>
+              <svg class="charity-lock-icon charity-lock-icon--closed" aria-hidden="true" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor"/>
+                <path d="M8 11V7a4 4 0 1 1 8 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+              </svg>
+              <span class="charity-lock-label">Lock</span>
+            </button>
+          </div>
+          <input
+            type="range"
+            class="charity-range"
+            id="range-${c.id}"
+            min="0"
+            max="100"
+            value="0"
+            step="1"
+            aria-label="${c.name} percentage"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+          />
+        </div>
+      `;
+    }
+
+    function bindSliderRow(c) {
       const slider = qs(`#range-${c.id}`);
       const lockBtn = qs(`#lock-${c.id}`);
       if (!slider) return;
@@ -1299,7 +1277,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
       });
 
       slider.addEventListener('input', () => {
-        const unlockedIds = charities.map((ch) => ch.id).filter((id) => !state.splitLocks[id]);
+        const unlockedIds = state.addedCharityIds.filter((id) => !state.splitLocks[id]);
         const isLastTwoUnlocked = unlockedIds.length <= 2;
 
         redistributeSplits(c.id, Number(slider.value));
@@ -1311,23 +1289,92 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
       lockBtn?.addEventListener('click', () => {
         setLock(c.id, !state.splitLocks[c.id]);
       });
-    });
+    }
 
-    // Step 3: HLF Split quick-set
-    const HLF_SPLIT_PCT = {
-      strongminds: 33,
-      'friendship-bench': 33,
-      'pure-earth': 20,
-      taimaka: 14,
-    };
-    qs('#hlfSplitBtn')?.addEventListener('click', () => {
-      charities.forEach((c) => {
-        state.splits[c.id] = HLF_SPLIT_PCT[c.id] ?? 0;
-        setLock(c.id, false);
-        syncSliderUI(c.id);
+    function syncAddButtonUI(id) {
+      const btn = qs(`#add-${id}`);
+      if (!btn) return;
+      const added = state.addedCharityIds.includes(id);
+      btn.classList.toggle('added', added);
+      btn.setAttribute('aria-pressed', String(added));
+      const charity = charities.find((c) => c.id === id);
+      btn.setAttribute('aria-label', added
+        ? `Remove ${charity?.name} from your split`
+        : `Add ${charity?.name} to your split`);
+    }
+
+    function equalizeAddedSplits() {
+      const ids = state.addedCharityIds;
+      if (ids.length === 0) return;
+      const share = 100 / ids.length;
+      ids.forEach((id) => {
+        state.splits[id] = share;
+        state.splitLocks[id] = false;
+        syncSliderUI(id);
+        syncLockUI(id);
       });
+    }
+
+    function addCharity(id) {
+      if (state.addedCharityIds.includes(id)) return;
+      const c = charities.find((ch) => ch.id === id);
+      if (!c) return;
+
+      state.addedCharityIds.push(id);
+      state.splits[id] = 0;
+      state.splitLocks[id] = false;
+
+      const container = qs('#charitySplits');
+      container.insertAdjacentHTML('beforeend', sliderRowHtml(c));
+      bindSliderRow(c);
+
+      equalizeAddedSplits();
+      syncAddButtonUI(id);
+      renderOutcomeCards();
       renderSplitTotals();
       renderImpact();
+      renderNavButtons();
+    }
+
+    function removeCharity(id) {
+      if (!state.addedCharityIds.includes(id)) return;
+
+      state.addedCharityIds = state.addedCharityIds.filter((cid) => cid !== id);
+      delete state.splits[id];
+      delete state.splitLocks[id];
+
+      qs(`.charity-slider-row[data-charity-id="${id}"]`)?.remove();
+
+      equalizeAddedSplits();
+      syncAddButtonUI(id);
+      renderOutcomeCards();
+      renderSplitTotals();
+      renderImpact();
+      renderNavButtons();
+    }
+
+    // Step 3: charity picker cards
+    charities.forEach((c) => {
+      qs(`#add-${c.id}`)?.addEventListener('click', () => {
+        if (state.addedCharityIds.includes(c.id)) {
+          removeCharity(c.id);
+        } else {
+          addCharity(c.id);
+        }
+      });
+
+      // Static effectiveness/confidence stats on the picker card
+      const effEl = qs(`#effectiveness-${c.id}`);
+      if (effEl) {
+        const yearsPerDollar = 1 / (c.costPerWellby * 1.3);
+        effEl.textContent = `1 year of depression averted per $${Math.round(1 / yearsPerDollar)}`;
+      }
+      const confEl = qs(`#confidence-${c.id}`);
+      if (confEl) {
+        const { label, color } = confidenceLabel(c.confidenceScore);
+        confEl.textContent = label;
+        confEl.style.color = color;
+      }
     });
 
     // Step 4: donor fields
@@ -1558,6 +1605,11 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     if (state.step === 2) {
       qs('#amount').classList.add('error');
       setTimeout(() => qs('#amount').classList.remove('error'), 2000);
+    }
+    if (state.step === 3) {
+      const grid = qs('#charityPickerGrid');
+      grid?.classList.add('shake');
+      setTimeout(() => grid?.classList.remove('shake'), 500);
     }
     if (state.step === 4) {
       ['firstName', 'lastName', 'email'].forEach((id) => {
@@ -1836,7 +1888,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   }
 
   /* ── Info button ── */
-  .info-btn {
+  :global(.info-btn) {
     font-size: 1rem;
     color: var(--color-text-secondary);
     background: none;
@@ -1848,8 +1900,8 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     flex-shrink: 0;
   }
 
-  .info-btn:hover,
-  .info-btn:focus {
+  :global(.info-btn:hover),
+  :global(.info-btn:focus) {
     color: var(--color-primary);
     outline: none;
   }
@@ -2168,24 +2220,137 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     font-style: italic;
   }
 
-  .hlf-split-btn {
-    display: inline-flex;
-    align-items: center;
-    padding: 7px 16px;
-    margin-bottom: 16px;
+  /* ── Charity picker cards (Step 3) ── */
+  .charity-picker-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .charity-picker-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px;
     border: 1.5px solid var(--color-border);
-    border-radius: 20px;
+    border-radius: var(--radius);
+    transition: border-color var(--transition), box-shadow var(--transition);
+  }
+
+  .charity-picker-card:has(.charity-add-btn.added) {
+    border-color: var(--color-primary);
+    background: var(--color-primary-light);
+  }
+
+  .charity-picker-logo {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+  }
+
+  .charity-picker-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 50%;
+  }
+
+  .charity-picker-logo-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: var(--color-white);
+    font-size: 1.125rem;
+    font-weight: 700;
+  }
+
+  .charity-picker-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .charity-picker-name-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+
+  .charity-picker-desc {
     font-size: 0.8125rem;
+    color: var(--color-text-secondary);
+    line-height: 1.4;
+    margin: 0 0 6px;
+  }
+
+  .charity-picker-report-link {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-primary);
+    text-decoration: none;
+    margin-bottom: 8px;
+  }
+
+  .charity-picker-report-link:hover {
+    text-decoration: underline;
+  }
+
+  .charity-picker-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 0.75rem;
     font-weight: 600;
     color: var(--color-text-secondary);
+  }
+
+  .charity-add-btn {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1.5px solid var(--color-border);
     background: var(--color-white);
+    color: var(--color-text-secondary);
     cursor: pointer;
     transition: all var(--transition);
   }
 
-  .hlf-split-btn:hover {
+  .charity-add-btn:hover {
     border-color: var(--color-primary);
     color: var(--color-primary);
+  }
+
+  .charity-add-btn.added {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-white);
+  }
+
+  .charity-add-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .charity-add-icon--check {
+    display: none;
+  }
+
+  .charity-add-btn.added .charity-add-icon--plus {
+    display: none;
+  }
+
+  .charity-add-btn.added .charity-add-icon--check {
+    display: block;
   }
 
   /* ── Charity sliders (Step 3) ── */
@@ -2196,27 +2361,27 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     margin-bottom: 16px;
   }
 
-  .charity-slider-row {}
+  :global(.charity-slider-row) {}
 
-  .charity-slider-header {
+  :global(.charity-slider-header) {
     display: flex;
     align-items: center;
     justify-content: space-between;
     margin-bottom: 6px;
   }
 
-  .charity-info {
+  :global(.charity-info) {
     display: flex;
     align-items: center;
     gap: 4px;
   }
 
-  .charity-name {
+  :global(.charity-name) {
     font-weight: 500;
     font-size: 0.9375rem;
   }
 
-  .charity-tier-badge {
+  :global(.charity-tier-badge) {
     display: inline-block;
     font-size: 0.6875rem;
     font-weight: 700;
@@ -2228,17 +2393,17 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     vertical-align: middle;
   }
 
-  .charity-tier-badge--top {
+  :global(.charity-tier-badge--top) {
     background: #2d6040;
     color: #ffffff;
   }
 
-  .charity-tier-badge--promising {
+  :global(.charity-tier-badge--promising) {
     background: #c17f3a;
     color: #ffffff;
   }
 
-  .charity-pct-label {
+  :global(.charity-pct-label) {
     font-weight: 700;
     font-size: 0.9375rem;
     color: var(--color-primary);
@@ -2246,7 +2411,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     text-align: right;
   }
 
-  .charity-lock-btn {
+  :global(.charity-lock-btn) {
     display: inline-flex;
     align-items: center;
     gap: 4px;
@@ -2262,37 +2427,37 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     flex-shrink: 0;
   }
 
-  .charity-lock-btn:hover {
+  :global(.charity-lock-btn:hover) {
     border-color: var(--color-primary);
     color: var(--color-primary);
   }
 
-  .charity-lock-btn.locked {
+  :global(.charity-lock-btn.locked) {
     background: var(--color-primary-light);
     border-color: var(--color-primary);
     color: var(--color-primary);
   }
 
-  .charity-lock-icon {
+  :global(.charity-lock-icon) {
     width: 13px;
     height: 13px;
     color: var(--color-primary);
     flex-shrink: 0;
   }
 
-  .charity-lock-icon--closed {
+  :global(.charity-lock-icon--closed) {
     display: none;
   }
 
-  .charity-lock-btn.locked .charity-lock-icon--open {
+  :global(.charity-lock-btn.locked .charity-lock-icon--open) {
     display: none;
   }
 
-  .charity-lock-btn.locked .charity-lock-icon--closed {
+  :global(.charity-lock-btn.locked .charity-lock-icon--closed) {
     display: block;
   }
 
-  .charity-range {
+  :global(.charity-range) {
     width: 100%;
     height: 6px;
     -webkit-appearance: none;
@@ -2303,7 +2468,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     accent-color: var(--color-primary);
   }
 
-  .charity-range::-webkit-slider-thumb {
+  :global(.charity-range::-webkit-slider-thumb) {
     -webkit-appearance: none;
     appearance: none;
     width: 20px;
@@ -2314,11 +2479,11 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     transition: transform var(--transition);
   }
 
-  .charity-range::-webkit-slider-thumb:hover {
+  :global(.charity-range::-webkit-slider-thumb:hover) {
     transform: scale(1.15);
   }
 
-  .charity-range::-moz-range-thumb {
+  :global(.charity-range::-moz-range-thumb) {
     width: 20px;
     height: 20px;
     border-radius: 50%;
@@ -2335,6 +2500,10 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     display: flex;
     align-items: center;
     gap: 4px;
+  }
+
+  .split-total[hidden] {
+    display: none;
   }
 
   #splitTotalPct {
@@ -2448,7 +2617,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     margin-top: 12px;
   }
 
-  .outcome-card {
+  :global(.outcome-card) {
     background: var(--color-primary-light);
     border: 1px solid var(--color-border-strong);
     border-radius: var(--radius-sm);
@@ -2460,21 +2629,21 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     gap: 6px;
   }
 
-  .outcome-icon {
+  :global(.outcome-icon) {
     width: 28px;
     height: 28px;
     color: var(--color-primary);
     flex-shrink: 0;
   }
 
-  .outcome-number {
+  :global(.outcome-number) {
     font-size: clamp(1.25rem, 4vw, 1.75rem);
     font-weight: 800;
     color: var(--color-primary);
     line-height: 1;
   }
 
-  .outcome-label {
+  :global(.outcome-label) {
     font-size: 0.75rem;
     color: var(--color-text-secondary);
     line-height: 1.3;
