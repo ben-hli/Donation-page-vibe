@@ -24,7 +24,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         Your generosity helps fund life-changing mental health interventions and
         HLI's research into the most effective ways to improve global wellbeing.
       </p>
-      <a href="/" class="btn-home">Make another donation →</a>
+      <button type="button" class="btn-home" id="shareBtn">Share with friends →</button>
     </div>
 
     <!-- Shown if Stripe redirected here with a failed status -->
@@ -176,6 +176,28 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     document.getElementById('successCard').setAttribute('hidden', '');
     document.getElementById('failedCard').removeAttribute('hidden');
   }
+
+  // Share with friends — Web Share API where available, clipboard-copy fallback otherwise
+  document.getElementById('shareBtn')?.addEventListener('click', async (e) => {
+    const shareData = {
+      title: 'Happier Lives Institute',
+      text: 'I just donated to the Happier Lives Institute — join me in supporting the most cost-effective ways to improve global wellbeing.',
+      url: 'https://happierlivesinstitute.org',
+    };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch {
+        // User cancelled the share sheet — no action needed.
+      }
+    } else {
+      await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
+      const btn = e.currentTarget;
+      const original = btn.textContent;
+      btn.textContent = 'Link copied!';
+      setTimeout(() => { btn.textContent = original; }, 2000);
+    }
+  });
 
   // "Other" option on how_heard reveals a free-text input
   const howHeardSelect = document.getElementById('howHeard');
