@@ -2565,7 +2565,6 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     max-width: 640px;
     margin-left: auto;
     margin-right: auto;
-    border-top: 1px solid var(--color-border);
   }
 
   .impact-header-row {
@@ -2577,8 +2576,8 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   }
 
   .impact-heading {
-    font-size: 0.8125rem;
-    font-weight: 600;
+    font-size: 0.9375rem;
+    font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: var(--color-primary);
@@ -2632,20 +2631,29 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   }
 
   .impact-breakdown {
-    text-align: left;
     border-top: 1px solid var(--color-border);
     padding-top: 14px;
     margin-top: 6px;
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: 4px;
   }
 
   :global(.impact-bk-row) {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: minmax(0, 200px) minmax(0, 220px);
+    gap: 24px;
     font-size: 0.8125rem;
     color: var(--color-text-secondary);
+  }
+
+  :global(.impact-bk-row span:first-child) {
+    text-align: right;
+  }
+
+  :global(.impact-bk-row span:last-child) {
+    text-align: left;
   }
 
   :global(.impact-hint) {
