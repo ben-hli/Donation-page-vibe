@@ -57,7 +57,7 @@ export const charities: Charity[] = [
     name: 'Taimaka',
     shortDescription: 'Integrated mental and physical health support in West Africa',
     fullDescription:
-      'Taimaka delivers integrated health services including mental health support in underserved communities in West Africa. They are a newer charity with promising evidence and strong cost-effectiveness potential.',
+      'Taimaka treats childhood acute malnutrition in northeastern Nigeria. They are a newer charity with a high cost-effectiveness estimate, but the evidence behind less robust than our Top Charities, making them a higher-risk, higher-reward option.',
     costPerWellby: 15.15,
     confidenceScore: 3,
     outcomeLabel: 'Children protected from malnutrition',
@@ -71,7 +71,7 @@ export const charities: Charity[] = [
     name: 'Pure Earth',
     shortDescription: 'Reducing pollution to improve mental and physical health globally',
     fullDescription:
-      'Pure Earth identifies and cleans up pollution hotspots in low- and middle-income countries. Lead poisoning and other pollutants cause significant cognitive and mental health harm — addressing them improves wellbeing at scale.',
+      'Pure Earth works with governments to identify and remove pollution hotspots in low- and middle-income countries. Money donated here funds their project to remove lead from eyeliner in Ghana often used on children. This is the most cost-effective project we have reviewed to date, but the evidence linking lead exposure in childhood to adult wellbeing is weaker than we would like, making this a higher risk, higher reward option.',
     costPerWellby: 9.23,
     confidenceScore: 4,
     outcomeLabel: 'Children protected from lead exposure',
