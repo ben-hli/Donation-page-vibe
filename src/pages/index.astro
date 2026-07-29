@@ -177,96 +177,99 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
         </div>
 
         <h3 class="step-title step-title--sub" id="step2AllocationTitle" style="display:none;">Choose your amount and allocation</h3>
+        <p class="step-desc" id="step2AllocationDesc" style="display:none;">Enter how much you'd like to give, then fine-tune the split below. Your estimated impact updates in real time as you go.</p>
 
-        <div class="freq-toggle" role="group" aria-label="Donation frequency">
-          <button type="button" class="freq-btn" data-freq="one-off">One-time</button>
-          <button type="button" class="freq-btn active" data-freq="monthly">
-            <span class="badge-recommended freq-btn-sticker">Most impactful</span>
-            Monthly
-            <span
-              role="button"
-              tabindex="0"
-              class="info-btn freq-btn-info"
-              aria-label="Why is monthly most impactful?"
-              data-tooltip="Because we know what's coming in, monthly donations let us commit to longer-term research and give our charity partners the confidence to plan ahead"
-            >ⓘ</span>
+        <div class="amount-allocation-inner">
+          <div class="freq-toggle" role="group" aria-label="Donation frequency">
+            <button type="button" class="freq-btn" data-freq="one-off">One-time</button>
+            <button type="button" class="freq-btn active" data-freq="monthly">
+              <span class="badge-recommended freq-btn-sticker">Most impactful</span>
+              Monthly
+              <span
+                role="button"
+                tabindex="0"
+                class="info-btn freq-btn-info"
+                aria-label="Why is monthly most impactful?"
+                data-tooltip="Because we know what's coming in, monthly donations let us commit to longer-term research and give our charity partners the confidence to plan ahead"
+              >ⓘ</span>
+            </button>
+            <!-- Pledge option temporarily disabled — code kept for later re-enable -->
+            <button type="button" class="freq-btn freq-btn-pledge" data-freq="pledge" style="display:none;">
+              Pledge
+            </button>
+          </div>
+
+          <!-- Pledge entry point disabled for now — code kept for later re-enable
+          <button type="button" class="pledge-redirect-link" id="pledgeRedirectLink">
+            Want to give a percentage of your income? Take a pledge!
           </button>
-          <!-- Pledge option temporarily disabled — code kept for later re-enable -->
-          <button type="button" class="freq-btn freq-btn-pledge" data-freq="pledge" style="display:none;">
-            Pledge
-          </button>
-        </div>
+          -->
 
-        <!-- Pledge entry point disabled for now — code kept for later re-enable
-        <button type="button" class="pledge-redirect-link" id="pledgeRedirectLink">
-          Want to give a percentage of your income? Take a pledge!
-        </button>
-        -->
+          <div class="currency-wrapper">
+            <select id="currency" aria-label="Currency">
+              {currencies.map((c) => (
+                <option value={c.code} selected={c.code === defaultCurrency}>
+                  {c.code} {c.symbol}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <div class="currency-wrapper">
-          <select id="currency" aria-label="Currency">
-            {currencies.map((c) => (
-              <option value={c.code} selected={c.code === defaultCurrency}>
-                {c.code} {c.symbol}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div id="manualAmountGroup">
-          <div class="amount-row">
-            <div class="amount-input-wrapper">
-              <span class="amount-symbol" id="currencySymbol">$</span>
-              <input
-                type="number"
-                id="amount"
-                placeholder="0"
-                min="1"
-                step="1"
-                aria-label="Donation amount"
-              />
+          <div id="manualAmountGroup">
+            <div class="amount-row">
+              <div class="amount-input-wrapper">
+                <span class="amount-symbol" id="currencySymbol">$</span>
+                <input
+                  type="number"
+                  id="amount"
+                  placeholder="0"
+                  min="1"
+                  step="1"
+                  aria-label="Donation amount"
+                />
+              </div>
             </div>
-          </div>
 
-          <div class="preset-amounts" aria-label="Preset amounts" id="presetAmounts" data-freq="monthly">
-            {[10, 25, 50, 100, 250, 500].map((n) => (
-              <button type="button" class="preset-btn" data-amount={n}>{n}</button>
-            ))}
-          </div>
-
-          <p class="amount-note" id="amountNote"></p>
-        </div>
-
-        <div id="pledgeCalculator" style="display:none;">
-          <div class="amount-row">
-            <div class="amount-input-wrapper">
-              <span class="amount-symbol" id="pledgeCurrencySymbol">$</span>
-              <input
-                type="number"
-                id="pledgeIncome"
-                placeholder="Annual income"
-                min="1"
-                step="1"
-                aria-label="Annual income"
-              />
+            <div class="preset-amounts" aria-label="Preset amounts" id="presetAmounts" data-freq="monthly">
+              {[10, 25, 50, 100, 250, 500].map((n) => (
+                <button type="button" class="preset-btn" data-amount={n}>{n}</button>
+              ))}
             </div>
+
+            <p class="amount-note" id="amountNote"></p>
           </div>
 
-          <p class="pledge-pct-label">What % of your income would you like to pledge?</p>
-          <div class="stepped-selector" role="radiogroup" aria-label="Pledge percentage">
-            {[1, 3, 5, 10].map((pct) => (
-              <label class="step-pill">
-                <input type="radio" name="pledge-pct" value={pct} />
-                <span>{pct}%</span>
-              </label>
-            ))}
+          <div id="pledgeCalculator" style="display:none;">
+            <div class="amount-row">
+              <div class="amount-input-wrapper">
+                <span class="amount-symbol" id="pledgeCurrencySymbol">$</span>
+                <input
+                  type="number"
+                  id="pledgeIncome"
+                  placeholder="Annual income"
+                  min="1"
+                  step="1"
+                  aria-label="Annual income"
+                />
+              </div>
+            </div>
+
+            <p class="pledge-pct-label">What % of your income would you like to pledge?</p>
+            <div class="stepped-selector" role="radiogroup" aria-label="Pledge percentage">
+              {[1, 3, 5, 10].map((pct) => (
+                <label class="step-pill">
+                  <input type="radio" name="pledge-pct" value={pct} />
+                  <span>{pct}%</span>
+                </label>
+              ))}
+            </div>
+
+            <p class="pledge-result" id="pledgeResult"></p>
           </div>
 
-          <p class="pledge-result" id="pledgeResult"></p>
+          <!-- Charity split sliders — populated by JS as charities are added -->
+          <div class="charity-splits" id="charitySplits"></div>
         </div>
-
-        <!-- Charity split sliders — populated by JS as charities are added -->
-        <div class="charity-splits" id="charitySplits"></div>
 
         <!-- Impact calculator -->
         <div class="impact-card">
@@ -644,6 +647,8 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     if (grid) grid.style.display = isRecommended ? '' : 'none';
     const allocationTitle = qs('#step2AllocationTitle');
     if (allocationTitle) allocationTitle.style.display = isRecommended ? '' : 'none';
+    const allocationDesc = qs('#step2AllocationDesc');
+    if (allocationDesc) allocationDesc.style.display = isRecommended ? '' : 'none';
     const splits = qs('#charitySplits');
     if (splits) splits.style.display = isRecommended ? '' : 'none';
     const hliCard = qs('.hli-contrib-card');
@@ -2040,6 +2045,18 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 
   .step-title--sub {
     margin-top: 28px;
+  }
+
+  /* Centered column matching .impact-card/.hli-contrib-card's width, so the
+     amount controls and sliders don't stretch to the full 900px charity-grid width. */
+  .amount-allocation-inner {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  .amount-allocation-inner .freq-toggle {
+    margin-left: auto;
+    margin-right: auto;
   }
 
   /* ── Option cards (Step 1) ── */
