@@ -176,10 +176,9 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
           </div>
         </div>
 
-        <div class="amount-allocation-inner">
-          <h3 class="step-title step-title--sub" id="step2AllocationTitle" style="display:none;">Choose your amount and allocation</h3>
-          <p class="step-desc" id="step2AllocationDesc" style="display:none;">Enter how much you'd like to give, then fine-tune the split below. Your estimated impact updates in real time as you go.</p>
+        <h3 class="step-title" id="step2AllocationTitle" style="display:none;">Choose your donation amount</h3>
 
+        <div id="step2AmountBox">
           <div class="freq-toggle" role="group" aria-label="Donation frequency">
             <button type="button" class="freq-btn" data-freq="one-off">One-time</button>
             <button type="button" class="freq-btn active" data-freq="monthly">
@@ -205,18 +204,17 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
           </button>
           -->
 
-          <div class="currency-wrapper">
-            <select id="currency" aria-label="Currency">
-              {currencies.map((c) => (
-                <option value={c.code} selected={c.code === defaultCurrency}>
-                  {c.code} {c.symbol}
-                </option>
-              ))}
-            </select>
-          </div>
-
           <div id="manualAmountGroup">
             <div class="amount-row">
+              <div class="currency-wrapper">
+                <select id="currency" aria-label="Currency">
+                  {currencies.map((c) => (
+                    <option value={c.code} selected={c.code === defaultCurrency}>
+                      {c.code} {c.symbol}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div class="amount-input-wrapper">
                 <span class="amount-symbol" id="currencySymbol">$</span>
                 <input
@@ -266,10 +264,12 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 
             <p class="pledge-result" id="pledgeResult"></p>
           </div>
-
-          <!-- Charity split sliders — populated by JS as charities are added -->
-          <div class="charity-splits" id="charitySplits"></div>
         </div>
+
+        <h3 class="step-title" id="step2SlidersTitle" style="display:none;">Choose your allocation</h3>
+
+        <!-- Charity split sliders — populated by JS as charities are added -->
+        <div class="charity-splits" id="charitySplits"></div>
 
         <!-- Impact calculator -->
         <div class="impact-card">
@@ -667,8 +667,10 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     if (grid) grid.style.display = isRecommended ? '' : 'none';
     const allocationTitle = qs('#step2AllocationTitle');
     if (allocationTitle) allocationTitle.style.display = isRecommended ? '' : 'none';
-    const allocationDesc = qs('#step2AllocationDesc');
-    if (allocationDesc) allocationDesc.style.display = isRecommended ? '' : 'none';
+    const amountBox = qs('#step2AmountBox');
+    if (amountBox) amountBox.classList.toggle('amount-box', isRecommended);
+    const slidersTitle = qs('#step2SlidersTitle');
+    if (slidersTitle) slidersTitle.style.display = isRecommended ? '' : 'none';
     const splits = qs('#charitySplits');
     if (splits) splits.style.display = isRecommended ? '' : 'none';
     const hliCard = qs('.hli-contrib-card');
@@ -2070,20 +2072,12 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     line-height: 1.5;
   }
 
-  .step-title--sub {
-    margin-top: 28px;
-  }
-
-  /* Centered column matching .impact-card/.hli-contrib-card's width, so the
-     amount controls and sliders don't stretch to the full 900px charity-grid width. */
-  .amount-allocation-inner {
-    max-width: 640px;
-    margin: 0 auto;
-  }
-
-  .amount-allocation-inner .freq-toggle {
-    margin-left: auto;
-    margin-right: auto;
+  /* Grey outlined box around the amount controls (Recommended Charities only) */
+  .amount-box {
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 24px;
   }
 
   /* ── Option cards (Step 1) ── */
@@ -2292,7 +2286,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   }
 
   .currency-wrapper {
-    margin-bottom: 16px;
+    flex-shrink: 0;
   }
 
   .currency-wrapper select {
@@ -2348,8 +2342,8 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 
   /* ── Preset amounts ── */
   .preset-amounts {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
     gap: 8px;
     margin-bottom: 8px;
   }
@@ -2364,6 +2358,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     background: var(--color-white);
     transition: all var(--transition);
     cursor: pointer;
+    text-align: center;
   }
 
   :global(.preset-btn:hover) {
@@ -3413,6 +3408,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     }
 
     .preset-amounts {
+      grid-template-columns: repeat(3, 1fr);
       gap: 6px;
     }
 
