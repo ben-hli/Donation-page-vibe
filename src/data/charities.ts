@@ -53,6 +53,20 @@ export const charities: Charity[] = [
     defaultSplitPct: 33.33,
   },
   {
+    id: 'pure-earth',
+    name: 'Pure Earth',
+    shortDescription: 'Reducing pollution to improve mental and physical health globally',
+    fullDescription:
+      'Pure Earth removes lead from products in low and middle income countries. It has the highest cost-effectiveness estimate of our charities, but the evidence linking lead exposure to wellbeing is less robust, making it a higher-risk, higher-reward option.',
+    costPerWellby: 9.23,
+    confidenceScore: 4,
+    outcomeLabel: 'Children protected from lead exposure',
+    costPerOutcome: 0.23,
+    website: 'https://www.pureearth.org',
+    tier: 'promising',
+    defaultSplitPct: 20,
+  },
+  {
     id: 'taimaka',
     name: 'Taimaka',
     shortDescription: 'Integrated mental and physical health support in West Africa',
@@ -65,20 +79,6 @@ export const charities: Charity[] = [
     website: 'https://taimaka.org',
     tier: 'promising',
     defaultSplitPct: 13.33,
-  },
-  {
-    id: 'pure-earth',
-    name: 'Pure Earth',
-    shortDescription: 'Reducing pollution to improve mental and physical health globally',
-    fullDescription:
-      'Pure Earth works with governments to identify and remove pollution hotspots in low- and middle-income countries. Money donated here funds their project to remove lead from eyeliner in Ghana often used on children. This is the most cost-effective project we have reviewed to date, but the evidence linking lead exposure in childhood to adult wellbeing is weaker than we would like, making this a higher risk, higher reward option.',
-    costPerWellby: 9.23,
-    confidenceScore: 4,
-    outcomeLabel: 'Children protected from lead exposure',
-    costPerOutcome: 0.23,
-    website: 'https://www.pureearth.org',
-    tier: 'promising',
-    defaultSplitPct: 20,
   },
 ];
 
