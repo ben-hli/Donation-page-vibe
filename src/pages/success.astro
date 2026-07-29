@@ -113,7 +113,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         </div>
 
         <div class="form-group">
-          <label><span class="question-number">3.</span> Would you have donated this money to another charity if HLI didn't exist?</label>
+          <label><span class="question-number">3.</span> If HLI didn't exist, do you think you would have donated this money to another charity instead?</label>
           <div class="radio-options" role="radiogroup" aria-label="Counterfactual donation">
             <label class="radio-option">
               <input type="radio" name="counterfactualDonation" value="definitely_yes" />
@@ -139,23 +139,35 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         </div>
 
         <div class="form-group" id="counterfactualDestinationGroup" hidden>
-          <label><span class="question-number">3a.</span> Where would that donation most likely have gone?</label>
+          <label>
+            <span class="question-number">3a.</span> Which type of charity would that donation most likely have gone to?
+            <button
+              type="button"
+              class="info-btn"
+              aria-label="What does EA mean?"
+              data-tooltip="EA = Effective Altruism, which is a movement focused on using evidence to figure out how to do the most good possible with your time, money, or career. If you haven't heard of this before then pick either option 2, 3 or 4"
+            >ⓘ</button>
+          </label>
           <div class="radio-options" role="radiogroup" aria-label="Counterfactual destination">
             <label class="radio-option">
-              <input type="radio" name="counterfactualDestination" value="other_ea_charities" />
-              <span>Other EA charities</span>
+              <input type="radio" name="counterfactualDestination" value="other_ea_charity" />
+              <span>Another effective altruism (EA) charity</span>
             </label>
             <label class="radio-option">
-              <input type="radio" name="counterfactualDestination" value="other_wellbeing_charities" />
-              <span>Other wellbeing-focused charities</span>
+              <input type="radio" name="counterfactualDestination" value="other_wellbeing_charity" />
+              <span>Another wellbeing/mental health-focused charity</span>
             </label>
             <label class="radio-option">
-              <input type="radio" name="counterfactualDestination" value="non_ea_charity" />
-              <span>Non-EA, non-wellbeing-focused charity</span>
+              <input type="radio" name="counterfactualDestination" value="different_type" />
+              <span>A different type of charity (not EA or wellbeing-focused)</span>
             </label>
             <label class="radio-option">
               <input type="radio" name="counterfactualDestination" value="mix" />
-              <span>A mix</span>
+              <span>A mix of the above</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="counterfactualDestination" value="not_sure" />
+              <span>Not sure</span>
             </label>
           </div>
         </div>
@@ -164,6 +176,10 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       </form>
 
       <p class="survey-thanks" id="surveyThanks" hidden>Thanks for sharing!</p>
+    </div>
+
+    <div class="tooltip-popup" id="tooltipPopup" role="tooltip" aria-live="polite" hidden>
+      <p id="tooltipText"></p>
     </div>
 
   </main>
@@ -236,6 +252,47 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     document.getElementById('surveyForm').hidden = true;
     document.getElementById('surveyThanks').hidden = false;
   });
+
+  // Info-button tooltips (hover/focus popup, mirrors the main donation flow's tooltip pattern)
+  const tooltipPopup = document.getElementById('tooltipPopup');
+  const tooltipText = document.getElementById('tooltipText');
+  let tooltipHideTimer;
+
+  function showTooltip(btn) {
+    clearTimeout(tooltipHideTimer);
+    tooltipText.textContent = btn.dataset.tooltip;
+    tooltipPopup.removeAttribute('hidden');
+    const rect = btn.getBoundingClientRect();
+    const scrollY = window.scrollY;
+    tooltipPopup.style.top = `${rect.bottom + scrollY + 8}px`;
+    tooltipPopup.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - 300))}px`;
+  }
+
+  function hideTooltip() {
+    tooltipHideTimer = setTimeout(() => tooltipPopup.setAttribute('hidden', ''), 150);
+  }
+
+  document.addEventListener('mouseover', (e) => {
+    const btn = e.target.closest('.info-btn[data-tooltip]');
+    if (btn) showTooltip(btn);
+    else if (!tooltipPopup.contains(e.target)) hideTooltip();
+  });
+
+  document.addEventListener('focusin', (e) => {
+    const btn = e.target.closest('.info-btn[data-tooltip]');
+    if (btn) showTooltip(btn);
+  });
+
+  document.addEventListener('focusout', (e) => {
+    if (!e.relatedTarget?.closest?.('#tooltipPopup')) hideTooltip();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') tooltipPopup.setAttribute('hidden', '');
+  });
+
+  tooltipPopup.addEventListener('mouseenter', () => clearTimeout(tooltipHideTimer));
+  tooltipPopup.addEventListener('mouseleave', hideTooltip);
 </script>
 
 <style>
@@ -397,6 +454,38 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     font-size: 0.875rem;
     font-weight: 500;
     color: var(--color-text-secondary);
+  }
+
+  :global(.info-btn) {
+    font-size: 1rem;
+    color: var(--color-text-secondary);
+    background: none;
+    border: none;
+    padding: 0 2px;
+    line-height: 1;
+    cursor: pointer;
+    transition: color var(--transition);
+  }
+
+  :global(.info-btn:hover),
+  :global(.info-btn:focus) {
+    color: var(--color-primary);
+    outline: none;
+  }
+
+  .tooltip-popup {
+    position: absolute;
+    z-index: 100;
+    background: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-lg);
+    padding: 12px 14px;
+    max-width: 280px;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--color-text);
+    pointer-events: auto;
   }
 
   .question-number {
