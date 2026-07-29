@@ -159,7 +159,15 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 
         <!-- Charity picker cards -->
         <div id="charityPickerGrid">
-          <h3 class="charity-group-title">Top Charities</h3>
+          <h3 class="charity-group-title">
+            Top Charities
+            <button
+              type="button"
+              class="info-btn"
+              aria-label="What are Top Charities?"
+              data-tooltip="These charities are amongst the most cost-effective at improving wellbeing, thoroughly investigated, and backed by strong evidence."
+            >ⓘ</button>
+          </h3>
           <div class="charity-picker-grid">
             {charities.filter((c) => c.tier === 'top').map((c) => (
               <div class="charity-picker-card" data-charity-id={c.id}>
@@ -205,7 +213,15 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
             ))}
           </div>
 
-          <h3 class="charity-group-title">Promising Charities</h3>
+          <h3 class="charity-group-title">
+            Promising Charities
+            <button
+              type="button"
+              class="info-btn"
+              aria-label="What are Promising Charities?"
+              data-tooltip="These charities are likely extremely cost-effective based on research so far, however we need stronger evidence for them to qualify as a 'Top Recommended Charity'. They're higher risk, higher reward, in terms of cost-effectiveness compared to top charities."
+            >ⓘ</button>
+          </h3>
           <div class="charity-picker-grid">
             {charities.filter((c) => c.tier === 'promising').map((c) => (
               <div class="charity-picker-card" data-charity-id={c.id}>
@@ -2322,6 +2338,9 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 
   /* ── Charity picker cards (Step 3) ── */
   .charity-group-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     font-size: 1rem;
     font-weight: 700;
     color: var(--color-text);
