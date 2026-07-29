@@ -30,7 +30,7 @@ export const charities: Charity[] = [
     shortDescription: 'Group therapy for depression in sub-Saharan Africa',
     fullDescription:
       'StrongMinds provides group interpersonal psychotherapy to women suffering from depression in Uganda and Zambia. Their programme has strong evidence of effectiveness and reaches tens of thousands of people each year.',
-    costPerWellby: 24.75,
+    costPerWellby: 24.77,
     confidenceScore: 10,
     outcomeLabel: 'One-to-one psychotherapy courses funded',
     costPerOutcome: 44.56,
@@ -44,7 +44,7 @@ export const charities: Charity[] = [
     shortDescription: 'Problem-solving therapy delivered by trained grandmothers in Zimbabwe',
     fullDescription:
       'Friendship Bench trains older women to deliver evidence-based problem-solving therapy (PST) for depression in Zimbabwe. Their innovative community model combines local trust with clinical effectiveness.',
-    costPerWellby: 20.62,
+    costPerWellby: 20.61,
     confidenceScore: 9,
     outcomeLabel: 'Group psychotherapy courses funded',
     costPerOutcome: 16.50,
@@ -58,7 +58,7 @@ export const charities: Charity[] = [
     shortDescription: 'Reducing pollution to improve mental and physical health globally',
     fullDescription:
       'Pure Earth removes lead from products in low and middle income countries. It has the highest cost-effectiveness estimate of our charities, but the evidence linking lead exposure to wellbeing is less robust, making it a higher-risk, higher-reward option.',
-    costPerWellby: 9.23,
+    costPerWellby: 9.49,
     confidenceScore: 4,
     outcomeLabel: 'Children protected from lead exposure',
     costPerOutcome: 0.23,
