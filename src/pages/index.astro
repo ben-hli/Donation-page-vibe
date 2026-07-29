@@ -635,6 +635,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 
   function onStepEnter(n) {
     document.body.classList.toggle('step-3-active', n === 3);
+    document.body.classList.toggle('hlf-amount-active', n === 2 && state.destination === 'hlf');
     if (n === 2) { fitAmountSymbol('currencySymbol'); fitAmountSymbol('pledgeCurrencySymbol'); renderHlfImpact(); }
     if (n === 3) renderImpact();
     if (n === 5) { renderReview(); initPaymentElement(); }
@@ -1825,7 +1826,8 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     transition: max-width var(--transition);
   }
 
-  :global(body.step-3-active) .page {
+  :global(body.step-3-active) .page,
+  :global(body.hlf-amount-active) .page {
     max-width: 900px;
   }
 
