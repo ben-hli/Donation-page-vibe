@@ -71,7 +71,7 @@ export const charities: Charity[] = [
     name: 'Taimaka',
     shortDescription: 'Integrated mental and physical health support in West Africa',
     fullDescription:
-      'Taimaka treats childhood acute malnutrition in northeastern Nigeria. They have a high cost-effectiveness estimate, but the evidence is less robust, making them a higher-risk, higher-reward option. They can be a good pick for those who place a high value on extending lives.',
+      'Taimaka treats childhood acute malnutrition in northeastern Nigeria. They have a high cost-effectiveness estimate, but the evidence is less robust, making them a higher-risk, higher-reward option. They can be a good pick for those who prioritise extending lives.',
     costPerWellby: 15.15,
     confidenceScore: 3,
     outcomeLabel: 'Children protected from malnutrition',
