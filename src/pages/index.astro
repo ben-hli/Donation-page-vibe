@@ -60,10 +60,156 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
         </div>
       </section>
 
-      <!-- ── Step 2: Choose your charities (Recommended Charities only) ── -->
+      <!-- ── Step 2: Amount ── -->
       <section class="step" id="step-2" aria-labelledby="step2-title">
-        <h2 id="step2-title" class="step-title">Choose your charities</h2>
-        <p class="step-desc">Add the charity or charities you'd like to support. If you choose more than one, your gift will be divided equally between them, then you can fine-tune the amounts on the next step.</p>
+        <h2 id="step2-title" class="step-title">How much would you like to give?</h2>
+
+        <div class="freq-toggle" role="group" aria-label="Donation frequency">
+          <button type="button" class="freq-btn" data-freq="one-off">One-time</button>
+          <button type="button" class="freq-btn active" data-freq="monthly">
+            <span class="badge-recommended freq-btn-sticker">Most impactful</span>
+            Monthly
+            <span
+              role="button"
+              tabindex="0"
+              class="info-btn freq-btn-info"
+              aria-label="Why is monthly most impactful?"
+              data-tooltip="Because we know what's coming in, monthly donations let us commit to longer-term research and give our charity partners the confidence to plan ahead"
+            >ⓘ</span>
+          </button>
+          <!-- Pledge option temporarily disabled — code kept for later re-enable -->
+          <button type="button" class="freq-btn freq-btn-pledge" data-freq="pledge" style="display:none;">
+            Pledge
+          </button>
+        </div>
+
+        <!-- Pledge entry point disabled for now — code kept for later re-enable
+        <button type="button" class="pledge-redirect-link" id="pledgeRedirectLink">
+          Want to give a percentage of your income? Take a pledge!
+        </button>
+        -->
+
+        <div class="currency-wrapper">
+          <select id="currency" aria-label="Currency">
+            {currencies.map((c) => (
+              <option value={c.code} selected={c.code === defaultCurrency}>
+                {c.code} {c.symbol}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div id="manualAmountGroup">
+          <div class="amount-row">
+            <div class="amount-input-wrapper">
+              <span class="amount-symbol" id="currencySymbol">$</span>
+              <input
+                type="number"
+                id="amount"
+                placeholder="0"
+                min="1"
+                step="1"
+                aria-label="Donation amount"
+              />
+            </div>
+          </div>
+
+          <div class="preset-amounts" aria-label="Preset amounts" id="presetAmounts" data-freq="monthly">
+            {[10, 25, 50, 100, 250, 500].map((n) => (
+              <button type="button" class="preset-btn" data-amount={n}>{n}</button>
+            ))}
+          </div>
+
+          <p class="amount-note" id="amountNote"></p>
+        </div>
+
+        <!-- HLF impact preview — shown only for the Happier Lives Fund path, which skips the Allocate step -->
+        <div class="impact-card" id="hlfImpactCard" style="display:none;">
+          <div class="impact-header-row">
+            <span class="impact-heading">Estimated impact</span>
+            <button
+              type="button"
+              class="info-btn"
+              aria-label="About this estimate"
+              data-tooltip="WELLBYs (Wellbeing-Adjusted Life Years) measure the wellbeing impact of your donation using HLI's cost-per-WELLBY estimates. Depression years averted = WELLBYs ÷ 1.3. The Happier Lives Fund allocates 10% to HLI's research and splits the remaining 90% between StrongMinds, Friendship Bench, Pure Earth, and Taimaka."
+            >ⓘ</button>
+          </div>
+          <div class="impact-timeframe" id="hlfImpactTimeframe" style="display:none;">
+            <div class="stepped-selector stepped-selector--timeframe" role="radiogroup" aria-label="Impact timeframe">
+              <label class="step-pill">
+                <input type="radio" name="hlf-impact-timeframe" value="month" checked />
+                <span>Per month</span>
+              </label>
+              <label class="step-pill">
+                <input type="radio" name="hlf-impact-timeframe" value="year" />
+                <span>Per year</span>
+              </label>
+              <label class="step-pill">
+                <input type="radio" name="hlf-impact-timeframe" value="lifetime" />
+                <span>Lifetime</span>
+              </label>
+            </div>
+            <div class="impact-age-input" id="hlfImpactAgeInput" style="display:none;">
+              <input
+                type="number"
+                id="hlfImpactAge"
+                min="1"
+                max="69"
+                placeholder="Your current age"
+                aria-label="Your current age"
+              />
+            </div>
+          </div>
+          <div class="impact-metrics-box">
+            <div class="impact-metrics impact-metrics--two">
+              <div class="impact-metric">
+                <div class="impact-number" id="hlfImpactWellbys">—</div>
+                <div class="impact-desc">WELLBYs generated</div>
+              </div>
+              <span class="impact-equals" aria-hidden="true">=</span>
+              <div class="impact-metric impact-metric--secondary">
+                <div class="impact-number" id="hlfImpactDepressionYears">—</div>
+                <div class="impact-desc">years of depression averted</div>
+              </div>
+            </div>
+          </div>
+          <p class="impact-breakdown-label">Broken down by charity</p>
+          <div class="impact-breakdown" id="hlfImpactBreakdown"></div>
+        </div>
+
+        <div id="pledgeCalculator" style="display:none;">
+          <div class="amount-row">
+            <div class="amount-input-wrapper">
+              <span class="amount-symbol" id="pledgeCurrencySymbol">$</span>
+              <input
+                type="number"
+                id="pledgeIncome"
+                placeholder="Annual income"
+                min="1"
+                step="1"
+                aria-label="Annual income"
+              />
+            </div>
+          </div>
+
+          <p class="pledge-pct-label">What % of your income would you like to pledge?</p>
+          <div class="stepped-selector" role="radiogroup" aria-label="Pledge percentage">
+            {[1, 3, 5, 10].map((pct) => (
+              <label class="step-pill">
+                <input type="radio" name="pledge-pct" value={pct} />
+                <span>{pct}%</span>
+              </label>
+            ))}
+          </div>
+
+          <p class="pledge-result" id="pledgeResult"></p>
+        </div>
+      </section>
+
+      <!-- ── Step 3: Split (Recommended Charities only) ── -->
+      <section class="step" id="step-3" aria-labelledby="step3-title">
+        <h2 id="step3-title" class="step-title">Choose one or more of our charities to support</h2>
+        <p class="step-desc">Add the charity or charities you'd like to support. If you choose more than one, your gift will be divided equally between them, then you can fine-tune the amounts below.</p>
 
         <!-- Charity picker cards -->
         <div id="charityPickerGrid">
@@ -175,113 +321,6 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
             ))}
           </div>
         </div>
-      </section>
-
-      <!-- ── Step 3: Amount (+ Allocate, for Recommended Charities) ── -->
-      <section class="step" id="step-3" aria-labelledby="step3-title">
-        <h2 id="step3-title" class="step-title">How much would you like to give?</h2>
-
-        <!-- Added-charity chips (Recommended Charities only) — lightweight add/remove
-             without the full picker cards, which live on the previous step. -->
-        <div id="charityChipBar" style="display:none;">
-          <div class="charity-chip-list" id="charityChipList"></div>
-          <div class="charity-chip-add-wrapper">
-            <button type="button" class="charity-chip-add-btn" id="charityChipAddBtn" aria-haspopup="listbox" aria-expanded="false">
-              + Add charity
-            </button>
-            <ul class="charity-chip-add-menu" id="charityChipAddMenu" role="listbox" hidden></ul>
-          </div>
-        </div>
-
-        <div id="step2AmountBox">
-          <div class="freq-toggle" role="group" aria-label="Donation frequency">
-            <button type="button" class="freq-btn" data-freq="one-off">One-time</button>
-            <button type="button" class="freq-btn active" data-freq="monthly">
-              <span class="badge-recommended freq-btn-sticker">Most impactful</span>
-              Monthly
-              <span
-                role="button"
-                tabindex="0"
-                class="info-btn freq-btn-info"
-                aria-label="Why is monthly most impactful?"
-                data-tooltip="Because we know what's coming in, monthly donations let us commit to longer-term research and give our charity partners the confidence to plan ahead"
-              >ⓘ</span>
-            </button>
-            <!-- Pledge option temporarily disabled — code kept for later re-enable -->
-            <button type="button" class="freq-btn freq-btn-pledge" data-freq="pledge" style="display:none;">
-              Pledge
-            </button>
-          </div>
-
-          <!-- Pledge entry point disabled for now — code kept for later re-enable
-          <button type="button" class="pledge-redirect-link" id="pledgeRedirectLink">
-            Want to give a percentage of your income? Take a pledge!
-          </button>
-          -->
-
-          <div id="manualAmountGroup">
-            <div class="amount-row">
-              <div class="currency-wrapper">
-                <select id="currency" aria-label="Currency">
-                  {currencies.map((c) => (
-                    <option value={c.code} selected={c.code === defaultCurrency}>
-                      {c.code} {c.symbol}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div class="amount-input-wrapper">
-                <span class="amount-symbol" id="currencySymbol">$</span>
-                <input
-                  type="number"
-                  id="amount"
-                  placeholder="0"
-                  min="1"
-                  step="1"
-                  aria-label="Donation amount"
-                />
-              </div>
-            </div>
-
-            <div class="preset-amounts" aria-label="Preset amounts" id="presetAmounts" data-freq="monthly">
-              {[10, 25, 50, 100, 250, 500].map((n) => (
-                <button type="button" class="preset-btn" data-amount={n}>{n}</button>
-              ))}
-            </div>
-
-            <p class="amount-note" id="amountNote"></p>
-          </div>
-
-          <div id="pledgeCalculator" style="display:none;">
-            <div class="amount-row">
-              <div class="amount-input-wrapper">
-                <span class="amount-symbol" id="pledgeCurrencySymbol">$</span>
-                <input
-                  type="number"
-                  id="pledgeIncome"
-                  placeholder="Annual income"
-                  min="1"
-                  step="1"
-                  aria-label="Annual income"
-                />
-              </div>
-            </div>
-
-            <p class="pledge-pct-label">What % of your income would you like to pledge?</p>
-            <div class="stepped-selector" role="radiogroup" aria-label="Pledge percentage">
-              {[1, 3, 5, 10].map((pct) => (
-                <label class="step-pill">
-                  <input type="radio" name="pledge-pct" value={pct} />
-                  <span>{pct}%</span>
-                </label>
-              ))}
-            </div>
-
-            <p class="pledge-result" id="pledgeResult"></p>
-          </div>
-        </div>
-
-        <h3 class="step-title" id="step2SlidersTitle" style="display:none;">Choose your allocation</h3>
 
         <!-- Charity split sliders — populated by JS as charities are added -->
         <div class="charity-splits" id="charitySplits"></div>
@@ -293,10 +332,8 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
             <button
               type="button"
               class="info-btn"
-              id="impactHlfCaveatInfo"
-              aria-label="About Happier Lives Fund estimates"
-              data-tooltip="The Happier Lives Fund allocations are decided quarterly by our experts for maximum impact, so we don't know in advance exactly the cost-effectiveness, and expect them to vary by quarter. These numbers are our best estimates though based on our allocations so far and what we consider the 'base' scenario."
-              style="display:none;"
+              aria-label="About this estimate"
+              data-tooltip="WELLBYs (Wellbeing-Adjusted Life Years) measure the wellbeing impact of your donation using HLI's cost-per-WELLBY estimates. Depression years averted = WELLBYs ÷ 1.3. Confidence score reflects the depth and quality of evidence behind each charity's estimate, weighted by your allocation."
             >ⓘ</button>
           </div>
           <div class="impact-timeframe" id="impactTimeframe" style="display:none;">
@@ -329,30 +366,12 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
             <div class="impact-metrics impact-metrics--two">
               <div class="impact-metric">
                 <div class="impact-number" id="impactWellbys">—</div>
-                <div class="impact-desc">
-                  WELLBYs generated
-                  <button
-                    type="button"
-                    class="info-btn"
-                    id="impactWellbysInfo"
-                    aria-label="About WELLBYs generated"
-                    data-tooltip="WELLBYs (Wellbeing-Adjusted Life Years) measure the wellbeing impact of your donation using HLI's cost-per-WELLBY estimates."
-                  >ⓘ</button>
-                </div>
+                <div class="impact-desc">WELLBYs generated</div>
               </div>
               <span class="impact-equals" aria-hidden="true">=</span>
               <div class="impact-metric impact-metric--secondary">
                 <div class="impact-number" id="impactDepressionYears">—</div>
-                <div class="impact-desc">
-                  years of depression averted
-                  <button
-                    type="button"
-                    class="info-btn"
-                    id="impactDepressionYearsInfo"
-                    aria-label="About years of depression averted"
-                    data-tooltip="Depression years averted = WELLBYs ÷ 1.3."
-                  >ⓘ</button>
-                </div>
+                <div class="impact-desc">years of depression averted</div>
               </div>
             </div>
           </div>
@@ -584,16 +603,12 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   };
 
   // ── Step sequence ───────────────────────────────────────────────────────
-  // Recommended Charities used to have its own Allocate step; the charity
-  // picker/sliders now live inline on the Amount step for every destination.
-  // Recommended Charities has its own "Choose your charities" step (2) before
-  // the Amount step (3); other destinations skip straight from Destination to Amount.
   function getStepSequence() {
-    return state.destination === 'recommended' ? [1, 2, 3, 4, 5] : [1, 3, 4, 5];
+    return state.destination === 'recommended' ? [1, 2, 3, 4, 5] : [1, 2, 4, 5];
   }
 
   function stepLabel(n) {
-    return { 1: 'Destination', 2: 'Charities', 3: 'Amount', 4: 'Your details', 5: 'Review' }[n];
+    return { 1: 'Destination', 2: 'Amount', 3: 'Allocate', 4: 'Your details', 5: 'Review' }[n];
   }
 
   function nextStep() {
@@ -672,32 +687,10 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     }, 220);
   }
 
-  // Shows/hides the charity chip bar, sliders, and HLI contribution card on the
-  // Amount step, and the grey box around the amount controls — all only
-  // relevant when giving to Recommended Charities.
-  function syncRecommendedUI() {
-    const isRecommended = state.destination === 'recommended';
-    const chipBar = qs('#charityChipBar');
-    if (chipBar) chipBar.style.display = isRecommended ? '' : 'none';
-    const amountBox = qs('#step2AmountBox');
-    if (amountBox) amountBox.classList.toggle('amount-box', isRecommended);
-    const slidersTitle = qs('#step2SlidersTitle');
-    if (slidersTitle) slidersTitle.style.display = isRecommended ? '' : 'none';
-    const splits = qs('#charitySplits');
-    if (splits) splits.style.display = isRecommended ? '' : 'none';
-    const hliCard = qs('.hli-contrib-card');
-    if (hliCard) hliCard.style.display = isRecommended ? '' : 'none';
-  }
-
   function onStepEnter(n) {
-    document.body.classList.toggle('charity-picker-step-active', n === 2);
-    if (n === 3) {
-      fitAmountSymbol('currencySymbol');
-      fitAmountSymbol('pledgeCurrencySymbol');
-      syncRecommendedUI();
-      renderCharityChips();
-      renderImpact();
-    }
+    document.body.classList.toggle('step-3-active', n === 3);
+    if (n === 2) { fitAmountSymbol('currencySymbol'); fitAmountSymbol('pledgeCurrencySymbol'); renderHlfImpact(); }
+    if (n === 3) renderImpact();
     if (n === 5) { renderReview(); initPaymentElement(); }
   }
 
@@ -738,8 +731,8 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   function isStepValid() {
     switch (state.step) {
       case 1: return state.destination !== null;
-      case 2: return state.addedCharityIds.length > 0;
-      case 3: return state.amount !== null && state.amount > 0;
+      case 2: return state.amount !== null && state.amount > 0;
+      case 3: return state.addedCharityIds.length > 0;
       case 4: {
         const { firstName, lastName, email, countryCode, addressLine1, city, state: region, postalCode } = state.donor;
         if (!firstName.trim() || !lastName.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -837,10 +830,6 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     return state.addedCharityIds.map((id) => charities.find((c) => c.id === id)).filter(Boolean);
   }
 
-  // Reassigned inside initEvents() once the chip-bar DOM/handlers exist —
-  // declared here so top-level code (onStepEnter) can call it too.
-  let renderCharityChips = () => {};
-
   function renderOutcomeCards() {
     const container = qs('#outcomeCards');
     if (!container) return;
@@ -878,45 +867,20 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     if (ageWrapper) ageWrapper.style.display = state.impactTimeframe === 'lifetime' ? '' : 'none';
   }
 
-  // Happier Lives Fund's fixed allocation: 10% to HLI's research, the
-  // remaining 90% split across the four recommended charities.
-  const HLF_HLI_PCT = 0.10;
-  const HLF_HLI_COST_PER_WELLBY = 9.5;
-  const HLF_CHARITY_SPLIT = {
-    strongminds: 0.33,
-    'friendship-bench': 0.33,
-    'pure-earth': 0.20,
-    taimaka: 0.14,
-  };
-
-  function syncImpactTooltips() {
-    const isHlf = state.destination === 'hlf';
-    const caveatInfo = qs('#impactHlfCaveatInfo');
-    if (caveatInfo) caveatInfo.style.display = isHlf ? '' : 'none';
-  }
-
   function renderImpact() {
     renderHliContribution();
     syncTimeframeUI('impactTimeframe', 'impactAgeInput');
-    syncImpactTooltips();
 
+    const amt = toUSD(state.amount || 0) * impactMultiplier();
     const wellbysEl = qs('#impactWellbys');
     const deprYrsEl = qs('#impactDepressionYears');
     const bkEl = qs('#impactBreakdown');
     const added = addedCharities();
-    const amt = toUSD(state.amount || 0) * impactMultiplier();
 
-    if (state.destination === 'hli') {
+    if (state.destination !== 'recommended' || amt <= 0 || added.length === 0) {
       wellbysEl.textContent = '—';
       deprYrsEl.textContent = '—';
-      bkEl.innerHTML = '<p class="impact-hint">Enter an amount to see your impact.</p>';
-      return;
-    }
-
-    if (state.destination === 'recommended' && (amt <= 0 || added.length === 0)) {
-      wellbysEl.textContent = '—';
-      deprYrsEl.textContent = '—';
-      bkEl.innerHTML = added.length > 0 && state.impactTimeframe === 'lifetime'
+      bkEl.innerHTML = state.destination === 'recommended' && added.length > 0 && state.impactTimeframe === 'lifetime'
         ? '<p class="impact-hint">Enter your age to see your lifetime impact.</p>'
         : '<p class="impact-hint">Add a charity and enter an amount to see your impact.</p>';
       added.forEach((c) => {
@@ -926,7 +890,67 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
       return;
     }
 
-    if (state.destination === 'hlf' && amt <= 0) {
+    const charityAmt = amt;
+    const totalSplits = added.reduce((s, c) => s + (state.splits[c.id] || 0), 0);
+
+    let totalWellbys = 0;
+    const breakdown = [];
+
+    added.forEach((c) => {
+      const fraction = totalSplits > 0 ? state.splits[c.id] / totalSplits : 0;
+      const allocated = charityAmt * fraction;
+      const wellbys = allocated / c.costPerWellby;
+      const outcomes = allocated / c.costPerOutcome;
+      totalWellbys += wellbys;
+      if (wellbys > 0) breakdown.push({ name: c.name, outcomes, outcomeLabel: c.outcomeLabel });
+    });
+
+    const depressionYears = totalWellbys / 1.3;
+
+    wellbysEl.textContent = fmt(totalWellbys);
+    deprYrsEl.textContent = fmt(depressionYears);
+    bkEl.innerHTML = breakdown
+      .map((b) => `<div class="impact-bk-row"><span>${b.name}</span><span aria-hidden="true"></span><span><strong class="impact-bk-value">${fmt(b.outcomes)}</strong> ${b.outcomeLabel}</span></div>`)
+      .join('');
+
+    // Outcome cards
+    added.forEach((c) => {
+      const el = qs(`#outcome-${c.id}`);
+      if (!el) return;
+      const fraction = totalSplits > 0 ? state.splits[c.id] / totalSplits : 0;
+      const allocated = charityAmt * fraction;
+      const outcomes = allocated / c.costPerOutcome;
+      el.textContent = outcomes > 0 ? fmt(outcomes) : '—';
+    });
+  }
+
+  // ── HLF impact preview (Amount step) ────────────────────────────────────
+  const HLF_HLI_PCT = 0.10;
+  const HLF_HLI_COST_PER_WELLBY = 9.5;
+  const HLF_CHARITY_SPLIT = {
+    strongminds: 0.33,
+    'friendship-bench': 0.33,
+    'pure-earth': 0.20,
+    taimaka: 0.14,
+  };
+
+  function renderHlfImpact() {
+    const card = qs('#hlfImpactCard');
+    if (!card) return;
+
+    if (state.destination !== 'hlf') {
+      card.style.display = 'none';
+      return;
+    }
+    card.style.display = '';
+    syncTimeframeUI('hlfImpactTimeframe', 'hlfImpactAgeInput');
+
+    const wellbysEl = qs('#hlfImpactWellbys');
+    const deprYrsEl = qs('#hlfImpactDepressionYears');
+    const bkEl = qs('#hlfImpactBreakdown');
+    const amt = toUSD(state.amount || 0) * impactMultiplier();
+
+    if (amt <= 0) {
       wellbysEl.textContent = '—';
       deprYrsEl.textContent = '—';
       bkEl.innerHTML = state.impactTimeframe === 'lifetime' && toUSD(state.amount || 0) > 0
@@ -935,46 +959,20 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
       return;
     }
 
-    let totalWellbys = 0;
+    const hliAmount = amt * HLF_HLI_PCT;
+    const charityAmount = amt * (1 - HLF_HLI_PCT);
+    let totalWellbys = hliAmount / HLF_HLI_COST_PER_WELLBY;
     const breakdown = [];
 
-    if (state.destination === 'hlf') {
-      const hliAmount = amt * HLF_HLI_PCT;
-      const charityAmount = amt * (1 - HLF_HLI_PCT);
-      totalWellbys = hliAmount / HLF_HLI_COST_PER_WELLBY;
-
-      Object.entries(HLF_CHARITY_SPLIT).forEach(([id, fraction]) => {
-        const c = charities.find((ch) => ch.id === id);
-        if (!c) return;
-        const allocated = charityAmount * fraction;
-        const wellbys = allocated / c.costPerWellby;
-        const outcomes = allocated / c.costPerOutcome;
-        totalWellbys += wellbys;
-        if (wellbys > 0) breakdown.push({ name: c.name, outcomes, outcomeLabel: c.outcomeLabel });
-      });
-    } else {
-      const charityAmt = amt;
-      const totalSplits = added.reduce((s, c) => s + (state.splits[c.id] || 0), 0);
-
-      added.forEach((c) => {
-        const fraction = totalSplits > 0 ? state.splits[c.id] / totalSplits : 0;
-        const allocated = charityAmt * fraction;
-        const wellbys = allocated / c.costPerWellby;
-        const outcomes = allocated / c.costPerOutcome;
-        totalWellbys += wellbys;
-        if (wellbys > 0) breakdown.push({ name: c.name, outcomes, outcomeLabel: c.outcomeLabel });
-      });
-
-      // Outcome cards
-      added.forEach((c) => {
-        const el = qs(`#outcome-${c.id}`);
-        if (!el) return;
-        const fraction = totalSplits > 0 ? state.splits[c.id] / totalSplits : 0;
-        const allocated = charityAmt * fraction;
-        const outcomes = allocated / c.costPerOutcome;
-        el.textContent = outcomes > 0 ? fmt(outcomes) : '—';
-      });
-    }
+    Object.entries(HLF_CHARITY_SPLIT).forEach(([id, fraction]) => {
+      const c = charities.find((ch) => ch.id === id);
+      if (!c) return;
+      const allocated = charityAmount * fraction;
+      const wellbys = allocated / c.costPerWellby;
+      const outcomes = allocated / c.costPerOutcome;
+      totalWellbys += wellbys;
+      if (wellbys > 0) breakdown.push({ name: c.name, outcomes, outcomeLabel: c.outcomeLabel });
+    });
 
     const depressionYears = totalWellbys / 1.3;
 
@@ -1279,7 +1277,6 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
         qsa('.option-card').forEach((c) => c.classList.remove('selected'));
         radio.closest('.option-card').classList.add('selected');
         renderNavButtons();
-        syncRecommendedUI();
       });
     });
 
@@ -1298,7 +1295,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
           qsa('.preset-btn').forEach((b) => b.classList.remove('active'));
           btn.classList.add('active');
           renderNavButtons();
-          renderImpact();
+          renderHlfImpact();
         });
       });
     }
@@ -1335,7 +1332,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
           state.amount = null;
         }
         renderNavButtons();
-        renderImpact();
+        renderHlfImpact();
       });
     });
 
@@ -1356,7 +1353,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     qs('#currency').addEventListener('change', (e) => {
       state.currency = e.target.value;
       updateCurrencySymbol();
-      renderImpact();
+      renderHlfImpact();
     });
 
     // Step 2: amount input
@@ -1368,7 +1365,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
         if (match) match.classList.add('active');
       }
       renderNavButtons();
-      renderImpact();
+      renderHlfImpact();
     });
 
     // Step 2: preset amounts (initial bind + default selection for the default frequency)
@@ -1387,7 +1384,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
         qs('#pledgeResult').textContent = '';
       }
       renderNavButtons();
-      renderImpact();
+      renderHlfImpact();
     }
 
     qs('#pledgeIncome').addEventListener('input', (e) => {
@@ -1402,7 +1399,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
       });
     });
 
-    // Impact timeframe (Per month / Per year / Lifetime)
+    // Impact timeframe (Per month / Per year / Lifetime) — Allocate step
     qsa('[name="impact-timeframe"]').forEach((radio) => {
       radio.addEventListener('change', () => {
         state.impactTimeframe = radio.value;
@@ -1414,7 +1411,19 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
       renderImpact();
     });
 
-    // HLI percentage
+    // Impact timeframe (Per month / Per year / Lifetime) — HLF impact card
+    qsa('[name="hlf-impact-timeframe"]').forEach((radio) => {
+      radio.addEventListener('change', () => {
+        state.impactTimeframe = radio.value;
+        renderHlfImpact();
+      });
+    });
+    qs('#hlfImpactAge')?.addEventListener('input', (e) => {
+      state.impactAge = e.target.value ? Number(e.target.value) : null;
+      renderHlfImpact();
+    });
+
+    // Step 3: HLI percentage
     const hliCustomInput = qs('#hliCustomInput');
     const hliCustomPct = qs('#hliCustomPct');
     const hliCustomToggle = qs('#hliCustomToggle');
@@ -1448,7 +1457,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
       renderImpact();
     });
 
-    // Charity sliders (Recommended Charities) — GWWC-style lock & auto-redistribute
+    // Step 3: charity sliders — GWWC-style lock & auto-redistribute
     function redistributeSplits(draggedId, draggedVal) {
       const addedIds = state.addedCharityIds;
       const lockedIds = addedIds.filter((id) => id !== draggedId && state.splitLocks[id]);
@@ -1591,7 +1600,6 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 
       equalizeAddedSplits();
       syncAddButtonUI(id);
-      renderCharityChips();
       renderOutcomeCards();
       renderSplitTotals();
       renderImpact();
@@ -1609,71 +1617,13 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 
       equalizeAddedSplits();
       syncAddButtonUI(id);
-      renderCharityChips();
       renderOutcomeCards();
       renderSplitTotals();
       renderImpact();
       renderNavButtons();
     }
 
-    // ── Charity chip bar (Amount step) ──────────────────────────────────────
-    // Lightweight add/remove UI mirroring the full picker cards on the
-    // previous step, without descriptions — just a name chip with a remove (×)
-    // and a "+ Add charity" dropdown listing whatever isn't added yet.
-    const chipAddBtn = qs('#charityChipAddBtn');
-    const chipAddMenu = qs('#charityChipAddMenu');
-
-    function closeChipAddMenu() {
-      chipAddMenu.hidden = true;
-      chipAddBtn.setAttribute('aria-expanded', 'false');
-    }
-
-    renderCharityChips = function () {
-      const list = qs('#charityChipList');
-      if (!list) return;
-
-      list.innerHTML = addedCharities()
-        .map((c) => `
-          <span class="charity-chip" data-charity-id="${c.id}">
-            ${c.name}
-            <button type="button" class="charity-chip-remove" data-charity-id="${c.id}" aria-label="Remove ${c.name}">×</button>
-          </span>
-        `)
-        .join('');
-
-      qsa('.charity-chip-remove').forEach((btn) => {
-        btn.addEventListener('click', () => removeCharity(btn.dataset.charityId));
-      });
-
-      const remaining = charities.filter((c) => !state.addedCharityIds.includes(c.id));
-      chipAddMenu.innerHTML = remaining
-        .map((c) => `<li role="option"><button type="button" data-charity-id="${c.id}">${c.name}</button></li>`)
-        .join('');
-      chipAddMenu.querySelectorAll('button').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          addCharity(btn.dataset.charityId);
-          closeChipAddMenu();
-        });
-      });
-
-      chipAddBtn.style.display = remaining.length === 0 ? 'none' : '';
-    }
-
-    chipAddBtn?.addEventListener('click', () => {
-      const isOpen = !chipAddMenu.hidden;
-      if (isOpen) {
-        closeChipAddMenu();
-      } else {
-        chipAddMenu.hidden = false;
-        chipAddBtn.setAttribute('aria-expanded', 'true');
-      }
-    });
-
-    document.addEventListener('click', (e) => {
-      if (!chipAddBtn.contains(e.target) && !chipAddMenu.contains(e.target)) closeChipAddMenu();
-    });
-
-    // Charity picker cards (Recommended Charities)
+    // Step 3: charity picker cards
     charities.forEach((c) => {
       qs(`#add-${c.id}`)?.addEventListener('click', () => {
         if (state.addedCharityIds.includes(c.id)) {
@@ -1843,7 +1793,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
         highlightErrors();
         return;
       }
-      if (state.step === 3 && state.destination === 'recommended') normalizeSplits();
+      if (state.step === 3) normalizeSplits();
       const next = nextStep();
       if (next) goToStep(next);
     });
@@ -1923,15 +1873,13 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
       setTimeout(() => qs('.option-list').classList.remove('shake'), 500);
     }
     if (state.step === 2) {
+      qs('#amount').classList.add('error');
+      setTimeout(() => qs('#amount').classList.remove('error'), 2000);
+    }
+    if (state.step === 3) {
       const grid = qs('#charityPickerGrid');
       grid?.classList.add('shake');
       setTimeout(() => grid?.classList.remove('shake'), 500);
-    }
-    if (state.step === 3) {
-      if (state.amount === null || state.amount <= 0) {
-        qs('#amount').classList.add('error');
-        setTimeout(() => qs('#amount').classList.remove('error'), 2000);
-      }
     }
     if (state.step === 4) {
       ['firstName', 'lastName', 'email'].forEach((id) => {
@@ -1972,7 +1920,6 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     renderNavButtons();
     updateCurrencySymbol();
     renderSplitTotals();
-    syncRecommendedUI();
     initEvents();
   }
 
@@ -1988,7 +1935,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     transition: max-width var(--transition);
   }
 
-  :global(body.charity-picker-step-active) .page {
+  :global(body.step-3-active) .page {
     max-width: 900px;
   }
 
@@ -2141,119 +2088,6 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     color: var(--color-text-secondary);
     margin-bottom: 24px;
     line-height: 1.5;
-  }
-
-  /* Grey outlined box around the amount controls (Recommended Charities only) */
-  .amount-box {
-    border: 1.5px solid var(--color-border);
-    border-radius: var(--radius);
-    padding: 20px;
-    margin-bottom: 24px;
-  }
-
-  /* ── Charity chip bar (Amount step) ── */
-  #charityChipBar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 24px;
-  }
-
-  .charity-chip-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  :global(.charity-chip) {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 8px 6px 14px;
-    border: 1.5px solid var(--color-primary);
-    background: var(--color-primary-light);
-    border-radius: 20px;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--color-primary);
-  }
-
-  :global(.charity-chip-remove) {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 18px;
-    height: 18px;
-    border: none;
-    border-radius: 50%;
-    background: none;
-    color: inherit;
-    font-size: 1rem;
-    line-height: 1;
-    cursor: pointer;
-    transition: background var(--transition);
-  }
-
-  :global(.charity-chip-remove:hover) {
-    background: rgba(0, 0, 0, 0.08);
-  }
-
-  .charity-chip-add-wrapper {
-    position: relative;
-  }
-
-  .charity-chip-add-btn {
-    padding: 7px 16px;
-    border: 1.5px dashed var(--color-border);
-    border-radius: 20px;
-    background: none;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--color-text-secondary);
-    cursor: pointer;
-    transition: all var(--transition);
-  }
-
-  .charity-chip-add-btn:hover {
-    border-color: var(--color-primary);
-    color: var(--color-primary);
-  }
-
-  .charity-chip-add-menu {
-    position: absolute;
-    z-index: 20;
-    top: calc(100% + 6px);
-    left: 0;
-    min-width: 200px;
-    background: var(--color-white);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    box-shadow: var(--shadow-lg);
-    padding: 6px;
-    margin: 0;
-    list-style: none;
-  }
-
-  .charity-chip-add-menu li {
-    display: block;
-  }
-
-  .charity-chip-add-menu button {
-    display: block;
-    width: 100%;
-    padding: 8px 10px;
-    border: none;
-    background: none;
-    border-radius: var(--radius-sm);
-    font-size: 0.875rem;
-    text-align: left;
-    color: var(--color-text);
-    cursor: pointer;
-  }
-
-  .charity-chip-add-menu button:hover {
-    background: var(--color-primary-light);
   }
 
   /* ── Option cards (Step 1) ── */
@@ -2462,7 +2296,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   }
 
   .currency-wrapper {
-    flex-shrink: 0;
+    margin-bottom: 16px;
   }
 
   .currency-wrapper select {
@@ -2518,8 +2352,8 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 
   /* ── Preset amounts ── */
   .preset-amounts {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    display: flex;
+    flex-wrap: wrap;
     gap: 8px;
     margin-bottom: 8px;
   }
@@ -2534,7 +2368,6 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     background: var(--color-white);
     transition: all var(--transition);
     cursor: pointer;
-    text-align: center;
   }
 
   :global(.preset-btn:hover) {
@@ -3584,7 +3417,6 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     }
 
     .preset-amounts {
-      grid-template-columns: repeat(3, 1fr);
       gap: 6px;
     }
 
