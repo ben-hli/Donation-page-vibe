@@ -62,7 +62,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 
       <!-- ── Step 2: Amount (+ Allocate, for Recommended Charities) ── -->
       <section class="step" id="step-2" aria-labelledby="step2-title">
-        <h2 id="step2-title" class="step-title" data-default-title="How much would you like to give?" data-recommended-title="Choose your charities and amount">How much would you like to give?</h2>
+        <h2 id="step2-title" class="step-title" data-default-title="How much would you like to give?" data-recommended-title="Choose your charities">How much would you like to give?</h2>
         <p class="step-desc" id="step2RecommendedDesc" style="display:none;">Add the charity or charities you'd like to support, then choose your donation amount below. If you choose more than one charity, your gift will be divided equally between them, then you can fine-tune the amounts.</p>
 
         <!-- Charity picker cards (Recommended Charities only) -->
@@ -176,8 +176,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
           </div>
         </div>
 
-        <!-- Charity split sliders — populated by JS as charities are added -->
-        <div class="charity-splits" id="charitySplits"></div>
+        <h3 class="step-title step-title--sub" id="step2AllocationTitle" style="display:none;">Choose your amount and allocation</h3>
 
         <div class="freq-toggle" role="group" aria-label="Donation frequency">
           <button type="button" class="freq-btn" data-freq="one-off">One-time</button>
@@ -265,6 +264,9 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 
           <p class="pledge-result" id="pledgeResult"></p>
         </div>
+
+        <!-- Charity split sliders — populated by JS as charities are added -->
+        <div class="charity-splits" id="charitySplits"></div>
 
         <!-- Impact calculator -->
         <div class="impact-card">
@@ -640,6 +642,8 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     if (recDesc) recDesc.style.display = isRecommended ? '' : 'none';
     const grid = qs('#charityPickerGrid');
     if (grid) grid.style.display = isRecommended ? '' : 'none';
+    const allocationTitle = qs('#step2AllocationTitle');
+    if (allocationTitle) allocationTitle.style.display = isRecommended ? '' : 'none';
     const splits = qs('#charitySplits');
     if (splits) splits.style.display = isRecommended ? '' : 'none';
     const hliCard = qs('.hli-contrib-card');
@@ -2032,6 +2036,10 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     color: var(--color-text-secondary);
     margin-bottom: 24px;
     line-height: 1.5;
+  }
+
+  .step-title--sub {
+    margin-top: 28px;
   }
 
   /* ── Option cards (Step 1) ── */
