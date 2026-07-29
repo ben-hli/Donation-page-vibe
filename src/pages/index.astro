@@ -60,13 +60,13 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
         </div>
       </section>
 
-      <!-- ── Step 2: Amount (+ Allocate, for Recommended Charities) ── -->
+      <!-- ── Step 2: Choose your charities (Recommended Charities only) ── -->
       <section class="step" id="step-2" aria-labelledby="step2-title">
-        <h2 id="step2-title" class="step-title" data-default-title="How much would you like to give?" data-recommended-title="Choose your charities">How much would you like to give?</h2>
-        <p class="step-desc" id="step2RecommendedDesc" style="display:none;">Add the charity or charities you'd like to support, then choose your donation amount below. If you choose more than one charity, your gift will be divided equally between them, then you can fine-tune the amounts.</p>
+        <h2 id="step2-title" class="step-title">Choose your charities</h2>
+        <p class="step-desc">Add the charity or charities you'd like to support. If you choose more than one, your gift will be divided equally between them, then you can fine-tune the amounts on the next step.</p>
 
-        <!-- Charity picker cards (Recommended Charities only) -->
-        <div id="charityPickerGrid" style="display:none;">
+        <!-- Charity picker cards -->
+        <div id="charityPickerGrid">
           <h3 class="charity-group-title">
             Top Charities
             <button
@@ -175,8 +175,23 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
             ))}
           </div>
         </div>
+      </section>
 
-        <h3 class="step-title" id="step2AllocationTitle" style="display:none;">Choose your donation amount</h3>
+      <!-- ── Step 3: Amount (+ Allocate, for Recommended Charities) ── -->
+      <section class="step" id="step-3" aria-labelledby="step3-title">
+        <h2 id="step3-title" class="step-title">How much would you like to give?</h2>
+
+        <!-- Added-charity chips (Recommended Charities only) — lightweight add/remove
+             without the full picker cards, which live on the previous step. -->
+        <div id="charityChipBar" style="display:none;">
+          <div class="charity-chip-list" id="charityChipList"></div>
+          <div class="charity-chip-add-wrapper">
+            <button type="button" class="charity-chip-add-btn" id="charityChipAddBtn" aria-haspopup="listbox" aria-expanded="false">
+              + Add charity
+            </button>
+            <ul class="charity-chip-add-menu" id="charityChipAddMenu" role="listbox" hidden></ul>
+          </div>
+        </div>
 
         <div id="step2AmountBox">
           <div class="freq-toggle" role="group" aria-label="Donation frequency">
@@ -571,12 +586,14 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   // ── Step sequence ───────────────────────────────────────────────────────
   // Recommended Charities used to have its own Allocate step; the charity
   // picker/sliders now live inline on the Amount step for every destination.
+  // Recommended Charities has its own "Choose your charities" step (2) before
+  // the Amount step (3); other destinations skip straight from Destination to Amount.
   function getStepSequence() {
-    return [1, 2, 4, 5];
+    return state.destination === 'recommended' ? [1, 2, 3, 4, 5] : [1, 3, 4, 5];
   }
 
   function stepLabel(n) {
-    return { 1: 'Destination', 2: 'Amount', 4: 'Your details', 5: 'Review' }[n];
+    return { 1: 'Destination', 2: 'Charities', 3: 'Amount', 4: 'Your details', 5: 'Review' }[n];
   }
 
   function nextStep() {
@@ -655,18 +672,13 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     }, 220);
   }
 
-  // Shows/hides the charity picker, sliders, and HLI contribution card on the
-  // Amount step — those are only relevant when giving to Recommended Charities.
+  // Shows/hides the charity chip bar, sliders, and HLI contribution card on the
+  // Amount step, and the grey box around the amount controls — all only
+  // relevant when giving to Recommended Charities.
   function syncRecommendedUI() {
     const isRecommended = state.destination === 'recommended';
-    const title = qs('#step2-title');
-    if (title) title.textContent = isRecommended ? title.dataset.recommendedTitle : title.dataset.defaultTitle;
-    const recDesc = qs('#step2RecommendedDesc');
-    if (recDesc) recDesc.style.display = isRecommended ? '' : 'none';
-    const grid = qs('#charityPickerGrid');
-    if (grid) grid.style.display = isRecommended ? '' : 'none';
-    const allocationTitle = qs('#step2AllocationTitle');
-    if (allocationTitle) allocationTitle.style.display = isRecommended ? '' : 'none';
+    const chipBar = qs('#charityChipBar');
+    if (chipBar) chipBar.style.display = isRecommended ? '' : 'none';
     const amountBox = qs('#step2AmountBox');
     if (amountBox) amountBox.classList.toggle('amount-box', isRecommended);
     const slidersTitle = qs('#step2SlidersTitle');
@@ -675,17 +687,16 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     if (splits) splits.style.display = isRecommended ? '' : 'none';
     const hliCard = qs('.hli-contrib-card');
     if (hliCard) hliCard.style.display = isRecommended ? '' : 'none';
-    document.body.classList.toggle('recommended-amount-active', isRecommended && state.step === 2);
   }
 
   function onStepEnter(n) {
-    if (n === 2) {
+    document.body.classList.toggle('charity-picker-step-active', n === 2);
+    if (n === 3) {
       fitAmountSymbol('currencySymbol');
       fitAmountSymbol('pledgeCurrencySymbol');
       syncRecommendedUI();
+      renderCharityChips();
       renderImpact();
-    } else {
-      document.body.classList.remove('recommended-amount-active');
     }
     if (n === 5) { renderReview(); initPaymentElement(); }
   }
@@ -727,11 +738,8 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   function isStepValid() {
     switch (state.step) {
       case 1: return state.destination !== null;
-      case 2: {
-        if (state.amount === null || state.amount <= 0) return false;
-        if (state.destination === 'recommended' && state.addedCharityIds.length === 0) return false;
-        return true;
-      }
+      case 2: return state.addedCharityIds.length > 0;
+      case 3: return state.amount !== null && state.amount > 0;
       case 4: {
         const { firstName, lastName, email, countryCode, addressLine1, city, state: region, postalCode } = state.donor;
         if (!firstName.trim() || !lastName.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -828,6 +836,10 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   function addedCharities() {
     return state.addedCharityIds.map((id) => charities.find((c) => c.id === id)).filter(Boolean);
   }
+
+  // Reassigned inside initEvents() once the chip-bar DOM/handlers exist —
+  // declared here so top-level code (onStepEnter) can call it too.
+  let renderCharityChips = () => {};
 
   function renderOutcomeCards() {
     const container = qs('#outcomeCards');
@@ -1579,6 +1591,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 
       equalizeAddedSplits();
       syncAddButtonUI(id);
+      renderCharityChips();
       renderOutcomeCards();
       renderSplitTotals();
       renderImpact();
@@ -1596,11 +1609,69 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 
       equalizeAddedSplits();
       syncAddButtonUI(id);
+      renderCharityChips();
       renderOutcomeCards();
       renderSplitTotals();
       renderImpact();
       renderNavButtons();
     }
+
+    // ── Charity chip bar (Amount step) ──────────────────────────────────────
+    // Lightweight add/remove UI mirroring the full picker cards on the
+    // previous step, without descriptions — just a name chip with a remove (×)
+    // and a "+ Add charity" dropdown listing whatever isn't added yet.
+    const chipAddBtn = qs('#charityChipAddBtn');
+    const chipAddMenu = qs('#charityChipAddMenu');
+
+    function closeChipAddMenu() {
+      chipAddMenu.hidden = true;
+      chipAddBtn.setAttribute('aria-expanded', 'false');
+    }
+
+    renderCharityChips = function () {
+      const list = qs('#charityChipList');
+      if (!list) return;
+
+      list.innerHTML = addedCharities()
+        .map((c) => `
+          <span class="charity-chip" data-charity-id="${c.id}">
+            ${c.name}
+            <button type="button" class="charity-chip-remove" data-charity-id="${c.id}" aria-label="Remove ${c.name}">×</button>
+          </span>
+        `)
+        .join('');
+
+      qsa('.charity-chip-remove').forEach((btn) => {
+        btn.addEventListener('click', () => removeCharity(btn.dataset.charityId));
+      });
+
+      const remaining = charities.filter((c) => !state.addedCharityIds.includes(c.id));
+      chipAddMenu.innerHTML = remaining
+        .map((c) => `<li role="option"><button type="button" data-charity-id="${c.id}">${c.name}</button></li>`)
+        .join('');
+      chipAddMenu.querySelectorAll('button').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          addCharity(btn.dataset.charityId);
+          closeChipAddMenu();
+        });
+      });
+
+      chipAddBtn.style.display = remaining.length === 0 ? 'none' : '';
+    }
+
+    chipAddBtn?.addEventListener('click', () => {
+      const isOpen = !chipAddMenu.hidden;
+      if (isOpen) {
+        closeChipAddMenu();
+      } else {
+        chipAddMenu.hidden = false;
+        chipAddBtn.setAttribute('aria-expanded', 'true');
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!chipAddBtn.contains(e.target) && !chipAddMenu.contains(e.target)) closeChipAddMenu();
+    });
 
     // Charity picker cards (Recommended Charities)
     charities.forEach((c) => {
@@ -1772,7 +1843,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
         highlightErrors();
         return;
       }
-      if (state.step === 2 && state.destination === 'recommended') normalizeSplits();
+      if (state.step === 3 && state.destination === 'recommended') normalizeSplits();
       const next = nextStep();
       if (next) goToStep(next);
     });
@@ -1852,14 +1923,14 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
       setTimeout(() => qs('.option-list').classList.remove('shake'), 500);
     }
     if (state.step === 2) {
+      const grid = qs('#charityPickerGrid');
+      grid?.classList.add('shake');
+      setTimeout(() => grid?.classList.remove('shake'), 500);
+    }
+    if (state.step === 3) {
       if (state.amount === null || state.amount <= 0) {
         qs('#amount').classList.add('error');
         setTimeout(() => qs('#amount').classList.remove('error'), 2000);
-      }
-      if (state.destination === 'recommended' && state.addedCharityIds.length === 0) {
-        const grid = qs('#charityPickerGrid');
-        grid?.classList.add('shake');
-        setTimeout(() => grid?.classList.remove('shake'), 500);
       }
     }
     if (state.step === 4) {
@@ -1917,7 +1988,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     transition: max-width var(--transition);
   }
 
-  :global(body.recommended-amount-active) .page {
+  :global(body.charity-picker-step-active) .page {
     max-width: 900px;
   }
 
@@ -2078,6 +2149,111 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     border-radius: var(--radius);
     padding: 20px;
     margin-bottom: 24px;
+  }
+
+  /* ── Charity chip bar (Amount step) ── */
+  #charityChipBar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+
+  .charity-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  :global(.charity-chip) {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px 6px 14px;
+    border: 1.5px solid var(--color-primary);
+    background: var(--color-primary-light);
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-primary);
+  }
+
+  :global(.charity-chip-remove) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border: none;
+    border-radius: 50%;
+    background: none;
+    color: inherit;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background var(--transition);
+  }
+
+  :global(.charity-chip-remove:hover) {
+    background: rgba(0, 0, 0, 0.08);
+  }
+
+  .charity-chip-add-wrapper {
+    position: relative;
+  }
+
+  .charity-chip-add-btn {
+    padding: 7px 16px;
+    border: 1.5px dashed var(--color-border);
+    border-radius: 20px;
+    background: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all var(--transition);
+  }
+
+  .charity-chip-add-btn:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+
+  .charity-chip-add-menu {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 6px);
+    left: 0;
+    min-width: 200px;
+    background: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-lg);
+    padding: 6px;
+    margin: 0;
+    list-style: none;
+  }
+
+  .charity-chip-add-menu li {
+    display: block;
+  }
+
+  .charity-chip-add-menu button {
+    display: block;
+    width: 100%;
+    padding: 8px 10px;
+    border: none;
+    background: none;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    text-align: left;
+    color: var(--color-text);
+    cursor: pointer;
+  }
+
+  .charity-chip-add-menu button:hover {
+    background: var(--color-primary-light);
   }
 
   /* ── Option cards (Step 1) ── */
