@@ -134,6 +134,32 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
               data-tooltip="WELLBYs (Wellbeing-Adjusted Life Years) measure the wellbeing impact of your donation using HLI's cost-per-WELLBY estimates. Depression years averted = WELLBYs ÷ 1.3. The Happier Lives Fund allocates 10% to HLI's research and splits the remaining 90% between StrongMinds, Friendship Bench, Pure Earth, and Taimaka."
             >ⓘ</button>
           </div>
+          <div class="impact-timeframe" id="hlfImpactTimeframe" style="display:none;">
+            <div class="stepped-selector stepped-selector--timeframe" role="radiogroup" aria-label="Impact timeframe">
+              <label class="step-pill">
+                <input type="radio" name="hlf-impact-timeframe" value="month" checked />
+                <span>Per month</span>
+              </label>
+              <label class="step-pill">
+                <input type="radio" name="hlf-impact-timeframe" value="year" />
+                <span>Per year</span>
+              </label>
+              <label class="step-pill">
+                <input type="radio" name="hlf-impact-timeframe" value="lifetime" />
+                <span>Lifetime</span>
+              </label>
+            </div>
+            <div class="impact-age-input" id="hlfImpactAgeInput" style="display:none;">
+              <input
+                type="number"
+                id="hlfImpactAge"
+                min="1"
+                max="69"
+                placeholder="Your current age"
+                aria-label="Your current age"
+              />
+            </div>
+          </div>
           <div class="impact-metrics-box">
             <div class="impact-metrics impact-metrics--two">
               <div class="impact-metric">
@@ -309,6 +335,32 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
               aria-label="About this estimate"
               data-tooltip="WELLBYs (Wellbeing-Adjusted Life Years) measure the wellbeing impact of your donation using HLI's cost-per-WELLBY estimates. Depression years averted = WELLBYs ÷ 1.3. Confidence score reflects the depth and quality of evidence behind each charity's estimate, weighted by your allocation."
             >ⓘ</button>
+          </div>
+          <div class="impact-timeframe" id="impactTimeframe" style="display:none;">
+            <div class="stepped-selector stepped-selector--timeframe" role="radiogroup" aria-label="Impact timeframe">
+              <label class="step-pill">
+                <input type="radio" name="impact-timeframe" value="month" checked />
+                <span>Per month</span>
+              </label>
+              <label class="step-pill">
+                <input type="radio" name="impact-timeframe" value="year" />
+                <span>Per year</span>
+              </label>
+              <label class="step-pill">
+                <input type="radio" name="impact-timeframe" value="lifetime" />
+                <span>Lifetime</span>
+              </label>
+            </div>
+            <div class="impact-age-input" id="impactAgeInput" style="display:none;">
+              <input
+                type="number"
+                id="impactAge"
+                min="1"
+                max="69"
+                placeholder="Your current age"
+                aria-label="Your current age"
+              />
+            </div>
           </div>
           <div class="impact-metrics-box">
             <div class="impact-metrics impact-metrics--two">
@@ -540,6 +592,8 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     addedCharityIds: [],
     splits: {},
     splitLocks: {},
+    impactTimeframe: 'month',
+    impactAge: null,
     donor: {
       firstName: '', lastName: '', email: '',
       country: '', countryCode: '',
@@ -747,6 +801,22 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 
   // ── Impact calculator ────────────────────────────────────────────────────
   const fmt = (n) => n < 1 ? n.toFixed(2) : n < 100 ? n.toFixed(1) : Math.round(n).toLocaleString();
+  const LIFETIME_END_AGE = 70;
+
+  // Monthly donations show a per-month/per-year/lifetime toggle; the base
+  // impact amount is always the per-donation (monthly) figure, so "year" and
+  // "lifetime" scale it up. One-time donations always use a 1x multiplier —
+  // the raw impact of that single gift.
+  function impactMultiplier() {
+    if (state.frequency !== 'monthly') return 1;
+    if (state.impactTimeframe === 'year') return 12;
+    if (state.impactTimeframe === 'lifetime') {
+      const age = state.impactAge;
+      if (!age || age >= LIFETIME_END_AGE) return 0;
+      return (LIFETIME_END_AGE - age) * 12;
+    }
+    return 1;
+  }
 
   function confidenceLabel(score) {
     if (score >= 9)        return { label: 'Very Low Risk',  color: '#1a4d2e' };
@@ -787,10 +857,21 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     el.innerHTML = `<strong>${sym}${hliAmount.toFixed(2)}</strong> — averts an estimated <strong>${fmt(extraDepressionYears)}</strong> additional year${extraDepressionYears === 1 ? '' : 's'} of depression`;
   }
 
+  // Show/hide the Per month / Per year / Lifetime control (monthly donations
+  // only) and its age input (Lifetime only), for a given card's element-id prefix.
+  function syncTimeframeUI(timeframeId, ageWrapperId) {
+    const wrapper = qs(`#${timeframeId}`);
+    if (!wrapper) return;
+    wrapper.style.display = state.frequency === 'monthly' ? '' : 'none';
+    const ageWrapper = qs(`#${ageWrapperId}`);
+    if (ageWrapper) ageWrapper.style.display = state.impactTimeframe === 'lifetime' ? '' : 'none';
+  }
+
   function renderImpact() {
     renderHliContribution();
+    syncTimeframeUI('impactTimeframe', 'impactAgeInput');
 
-    const amt = toUSD(state.amount || 0);
+    const amt = toUSD(state.amount || 0) * impactMultiplier();
     const wellbysEl = qs('#impactWellbys');
     const deprYrsEl = qs('#impactDepressionYears');
     const bkEl = qs('#impactBreakdown');
@@ -799,7 +880,9 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     if (state.destination !== 'recommended' || amt <= 0 || added.length === 0) {
       wellbysEl.textContent = '—';
       deprYrsEl.textContent = '—';
-      bkEl.innerHTML = '<p class="impact-hint">Add a charity and enter an amount to see your impact.</p>';
+      bkEl.innerHTML = state.destination === 'recommended' && added.length > 0 && state.impactTimeframe === 'lifetime'
+        ? '<p class="impact-hint">Enter your age to see your lifetime impact.</p>'
+        : '<p class="impact-hint">Add a charity and enter an amount to see your impact.</p>';
       added.forEach((c) => {
         const el = qs(`#outcome-${c.id}`);
         if (el) el.textContent = '—';
@@ -860,16 +943,19 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
       return;
     }
     card.style.display = '';
+    syncTimeframeUI('hlfImpactTimeframe', 'hlfImpactAgeInput');
 
     const wellbysEl = qs('#hlfImpactWellbys');
     const deprYrsEl = qs('#hlfImpactDepressionYears');
     const bkEl = qs('#hlfImpactBreakdown');
-    const amt = toUSD(state.amount || 0);
+    const amt = toUSD(state.amount || 0) * impactMultiplier();
 
     if (amt <= 0) {
       wellbysEl.textContent = '—';
       deprYrsEl.textContent = '—';
-      bkEl.innerHTML = '<p class="impact-hint">Enter an amount to see your impact.</p>';
+      bkEl.innerHTML = state.impactTimeframe === 'lifetime' && toUSD(state.amount || 0) > 0
+        ? '<p class="impact-hint">Enter your age to see your lifetime impact.</p>'
+        : '<p class="impact-hint">Enter an amount to see your impact.</p>';
       return;
     }
 
@@ -1311,6 +1397,30 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
         state.pledgePct = Number(radio.value);
         updatePledgeAmount();
       });
+    });
+
+    // Impact timeframe (Per month / Per year / Lifetime) — Allocate step
+    qsa('[name="impact-timeframe"]').forEach((radio) => {
+      radio.addEventListener('change', () => {
+        state.impactTimeframe = radio.value;
+        renderImpact();
+      });
+    });
+    qs('#impactAge')?.addEventListener('input', (e) => {
+      state.impactAge = e.target.value ? Number(e.target.value) : null;
+      renderImpact();
+    });
+
+    // Impact timeframe (Per month / Per year / Lifetime) — HLF impact card
+    qsa('[name="hlf-impact-timeframe"]').forEach((radio) => {
+      radio.addEventListener('change', () => {
+        state.impactTimeframe = radio.value;
+        renderHlfImpact();
+      });
+    });
+    qs('#hlfImpactAge')?.addEventListener('input', (e) => {
+      state.impactAge = e.target.value ? Number(e.target.value) : null;
+      renderHlfImpact();
     });
 
     // Step 3: HLI percentage
@@ -2733,6 +2843,38 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     max-width: 640px;
     margin-left: auto;
     margin-right: auto;
+  }
+
+  .impact-timeframe {
+    margin-bottom: 16px;
+  }
+
+  .stepped-selector--timeframe {
+    max-width: 360px;
+    margin: 0 auto;
+  }
+
+  .impact-age-input {
+    margin-top: 10px;
+    max-width: 240px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .impact-age-input input {
+    width: 100%;
+    height: 42px;
+    padding: 0 12px;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 0.9375rem;
+    text-align: center;
+    box-sizing: border-box;
+  }
+
+  .impact-age-input input:focus {
+    outline: none;
+    border-color: var(--color-primary);
   }
 
   .impact-header-row {
