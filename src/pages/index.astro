@@ -69,6 +69,13 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
           <button type="button" class="freq-btn active" data-freq="monthly">
             <span class="badge-recommended freq-btn-sticker">Most impactful</span>
             Monthly
+            <span
+              role="button"
+              tabindex="0"
+              class="info-btn freq-btn-info"
+              aria-label="Why is monthly most impactful?"
+              data-tooltip="Because we know what's coming in, monthly donations let us commit to longer-term research and give our charity partners the confidence to plan ahead"
+            >ⓘ</span>
           </button>
           <!-- Pledge option temporarily disabled — code kept for later re-enable -->
           <button type="button" class="freq-btn freq-btn-pledge" data-freq="pledge" style="display:none;">
@@ -76,9 +83,11 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
           </button>
         </div>
 
+        <!-- Pledge entry point disabled for now — code kept for later re-enable
         <button type="button" class="pledge-redirect-link" id="pledgeRedirectLink">
           Want to give a percentage of your income? Take a pledge!
         </button>
+        -->
 
         <div class="currency-wrapper">
           <select id="currency" aria-label="Currency">
@@ -145,8 +154,8 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 
       <!-- ── Step 3: Split (Recommended Charities only) ── -->
       <section class="step" id="step-3" aria-labelledby="step3-title">
-        <h2 id="step3-title" class="step-title">Choose your charities</h2>
-        <p class="step-desc">Add the charities you'd like to support. Your gift will be split equally between the ones you choose — you can then fine-tune the split below.</p>
+        <h2 id="step3-title" class="step-title">Choose one or more of our charities to support</h2>
+        <p class="step-desc">Add the charity or charities you'd like to support. If you choose more than one, your gift will be divided equally between them, then you can fine-tune the amounts below.</p>
 
         <!-- Charity picker cards -->
         <div id="charityPickerGrid">
@@ -532,9 +541,12 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
       const current = stepNum === state.step;
       const cls = done ? 'prog-step done' : current ? 'prog-step current' : 'prog-step';
       const label = stepLabel(stepNum);
+      const clickable = done;
       return `
         <div class="${cls}" aria-current="${current ? 'step' : 'false'}">
-          <div class="prog-circle">${done ? '✓' : i + 1}</div>
+          ${clickable
+            ? `<button type="button" class="prog-circle-btn" data-step="${stepNum}" aria-label="Go back to ${label}"><div class="prog-circle">✓</div></button>`
+            : `<div class="prog-circle">${done ? '✓' : i + 1}</div>`}
           <div class="prog-label">${label}</div>
         </div>
         ${i < seq.length - 1 ? '<div class="prog-line' + (done ? ' done' : '') + '"></div>' : ''}
@@ -543,6 +555,13 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 
     // Screen reader text
     nav.setAttribute('aria-label', `Step ${pos} of ${total}: ${stepLabel(state.step)}`);
+
+    qsa('.prog-circle-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        if (state.step === 5) teardownPaymentElement();
+        goToStep(Number(btn.dataset.step));
+      });
+    });
   }
 
   // ── Step transitions ────────────────────────────────────────────────────
@@ -1129,8 +1148,8 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
       });
     });
 
-    // Step 2: pledge redirect link
-    qs('#pledgeRedirectLink').addEventListener('click', () => {
+    // Step 2: pledge redirect link (disabled — element commented out above)
+    qs('#pledgeRedirectLink')?.addEventListener('click', () => {
       qs('.freq-btn-pledge').click();
     });
 
@@ -1580,6 +1599,11 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
       btn.addEventListener('click', (e) => e.stopPropagation());
     });
 
+    // Prevent the "Most impactful" info-btn from re-triggering the frequency button
+    qsa('.freq-btn-info').forEach((btn) => {
+      btn.addEventListener('click', (e) => e.stopPropagation());
+    });
+
     // Tooltips
     initTooltips();
   }
@@ -1749,6 +1773,24 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     background: var(--color-primary);
     border-color: var(--color-primary);
     color: var(--color-white);
+  }
+
+  :global(.prog-circle-btn) {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: transform var(--transition);
+  }
+
+  :global(.prog-circle-btn:hover) {
+    transform: scale(1.08);
+  }
+
+  :global(.prog-circle-btn:hover .prog-circle) {
+    box-shadow: 0 0 0 3px var(--color-primary-light);
   }
 
   :global(.prog-step.current .prog-circle) {
@@ -2004,6 +2046,14 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     font-size: 0.5625rem;
     padding: 1px 5px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  }
+
+  .freq-btn-info {
+    font-size: 0.6875rem;
+    line-height: 1;
+    padding: 0 0 0 4px;
+    color: inherit;
+    vertical-align: middle;
   }
 
   .pledge-redirect-link {
