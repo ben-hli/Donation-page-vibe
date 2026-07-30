@@ -908,7 +908,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     const isMonthly = state.frequency === 'monthly';
     const cadence = isMonthly ? ' per month' : '';
     const everyPeriod = isMonthly ? ' every month' : '';
-    el.innerHTML = `<strong>${sym}${hliAmount.toFixed(2)}</strong>${cadence} - averts an estimated <strong>${fmt(extraDepressionYears)}</strong> additional year${extraDepressionYears === 1 ? '' : 's'} of depression${everyPeriod}`;
+    el.innerHTML = `<strong>${sym}${hliAmount.toFixed(2)}</strong>${cadence} — averts an estimated <strong>${fmt(extraDepressionYears)}</strong> additional year${extraDepressionYears === 1 ? '' : 's'} of depression${everyPeriod}`;
   }
 
   // Show/hide the Per month / Per year / Lifetime control (monthly donations
