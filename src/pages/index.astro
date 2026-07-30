@@ -353,6 +353,23 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
                 <button type="button" class="preset-btn" data-amount={n}>{n}</button>
               ))}
             </div>
+
+            <div class="boost-slider-row" id="boostSliderRow">
+              <div class="boost-slider-label-row">
+                <span class="boost-slider-label">Boost your impact</span>
+                <span class="boost-slider-value" id="boostSliderValue"></span>
+              </div>
+              <input
+                type="range"
+                class="boost-slider"
+                id="boostSlider"
+                min="0"
+                max="0"
+                step="1"
+                value="0"
+                aria-label="Increase your donation amount"
+              />
+            </div>
           </div>
         </details>
 
@@ -397,11 +414,13 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
             <div class="impact-metrics impact-metrics--two">
               <div class="impact-metric">
                 <div class="impact-number" id="impactWellbys">—</div>
+                <span class="impact-delta" id="impactWellbysDelta" hidden></span>
                 <div class="impact-desc">WELLBYs generated</div>
               </div>
               <span class="impact-equals" aria-hidden="true">=</span>
               <div class="impact-metric impact-metric--secondary">
                 <div class="impact-number" id="impactDepressionYears">—</div>
+                <span class="impact-delta" id="impactDepressionYearsDelta" hidden></span>
                 <div class="impact-desc">years of depression averted</div>
               </div>
             </div>
@@ -625,6 +644,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     splitLocks: {},
     impactTimeframe: 'month',
     impactAge: null,
+    boostBaseline: null,
     donor: {
       firstName: '', lastName: '', email: '',
       country: '', countryCode: '',
@@ -900,9 +920,78 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     if (ageWrapper) ageWrapper.style.display = state.impactTimeframe === 'lifetime' ? '' : 'none';
   }
 
+  // Pure calculator used by both the impact card and the boost-slider delta —
+  // splitFractions: [{ costPerWellby, fraction }], fractions should sum to ~1.
+  // Mirrors the math inside renderImpact() below.
+  function calcWellbys(amountUSD, splitFractions) {
+    return splitFractions.reduce(
+      (sum, { costPerWellby, fraction }) => sum + (amountUSD * fraction) / costPerWellby, 0
+    );
+  }
+
+  function currentSplitFractions() {
+    const added = addedCharities();
+    const totalSplits = added.reduce((s, c) => s + (state.splits[c.id] || 0), 0);
+    return added.map((c) => ({
+      costPerWellby: c.costPerWellby,
+      fraction: totalSplits > 0 ? state.splits[c.id] / totalSplits : 0,
+    }));
+  }
+
+  // "Boost your impact" slider (Change-amount section) — starts at whatever
+  // state.amount currently is (the "baseline") and can only move upward from
+  // there, so donors can't drag below the amount they already chose. The
+  // baseline re-anchors to the current amount whenever it changes elsewhere
+  // (number input, presets) so the slider always represents "boost from here."
+  function refreshBoostSlider() {
+    const slider = qs('#boostSlider');
+    const row = qs('#boostSliderRow');
+    const valueEl = qs('#boostSliderValue');
+    if (!slider || !row || !valueEl) return;
+
+    const added = addedCharities();
+    if (state.destination !== 'recommended' || added.length === 0 || !state.amount || state.amount <= 0) {
+      row.style.display = 'none';
+      qs('#impactWellbysDelta').hidden = true;
+      qs('#impactDepressionYearsDelta').hidden = true;
+      return;
+    }
+    row.style.display = '';
+
+    if (state.boostBaseline === null || state.amount < state.boostBaseline) {
+      state.boostBaseline = state.amount;
+    }
+
+    const baseline = state.boostBaseline;
+    const max = Math.max(baseline * 5, baseline + 1);
+    slider.min = String(baseline);
+    slider.max = String(max);
+    slider.value = String(state.amount);
+    valueEl.textContent = `${getCurrencySymbol(state.currency)}${state.amount}`;
+
+    const splitFractions = currentSplitFractions();
+    const baselineWellbys = calcWellbys(toUSD(baseline) * impactMultiplier(), splitFractions);
+    const currentWellbys = calcWellbys(toUSD(state.amount) * impactMultiplier(), splitFractions);
+    const deltaWellbys = currentWellbys - baselineWellbys;
+    const deltaDepressionYears = deltaWellbys / 1.3;
+
+    const wellbysDeltaEl = qs('#impactWellbysDelta');
+    const deprYrsDeltaEl = qs('#impactDepressionYearsDelta');
+    if (deltaWellbys > 0.005) {
+      wellbysDeltaEl.textContent = `+${fmt(deltaWellbys)}`;
+      wellbysDeltaEl.hidden = false;
+      deprYrsDeltaEl.textContent = `+${fmt(deltaDepressionYears)}`;
+      deprYrsDeltaEl.hidden = false;
+    } else {
+      wellbysDeltaEl.hidden = true;
+      deprYrsDeltaEl.hidden = true;
+    }
+  }
+
   function renderImpact() {
     renderHliContribution();
     syncTimeframeUI('impactTimeframe', 'impactAgeInput');
+    refreshBoostSlider();
 
     const amt = toUSD(state.amount || 0) * impactMultiplier();
     const wellbysEl = qs('#impactWellbys');
@@ -1343,6 +1432,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
         btn.addEventListener('click', () => {
           const amt = Number(btn.dataset.amount);
           state.amount = amt;
+          state.boostBaseline = amt;
           syncAmountInputs(amt);
           syncPresetActiveState(amt);
           renderNavButtons();
@@ -1367,6 +1457,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
       bindPresetButtons();
       if (opts.applyDefault) {
         state.amount = config.default;
+        state.boostBaseline = config.default;
         syncAmountInputs(config.default);
         syncPresetActiveState(config.default);
       }
@@ -1417,6 +1508,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
       qs(`#${id}`)?.addEventListener('input', (e) => {
         const amt = e.target.value ? Number(e.target.value) : null;
         state.amount = amt;
+        state.boostBaseline = amt;
         syncAmountInputs(amt);
         syncPresetActiveState(amt);
         renderNavButtons();
@@ -1427,6 +1519,20 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 
     // Step 2: preset amounts (initial bind + default selection for the default frequency)
     renderPresets(state.frequency, { applyDefault: true });
+
+    // "Boost your impact" slider — deliberately does NOT touch state.boostBaseline,
+    // since the whole point is a one-way floor the donor can't drag back below.
+    qs('#boostSlider')?.addEventListener('input', (e) => {
+      const min = Number(e.target.min);
+      const amt = Math.max(Number(e.target.value), min);
+      e.target.value = String(amt);
+      state.amount = amt;
+      syncAmountInputs(amt);
+      syncPresetActiveState(amt);
+      renderNavButtons();
+      renderHlfImpact();
+      renderImpact();
+    });
 
     // Step 2: pledge calculator
     function updatePledgeAmount() {
@@ -2943,6 +3049,66 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     margin-top: 4px;
   }
 
+  .boost-slider-row {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--color-primary);
+  }
+
+  .boost-slider-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .boost-slider-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  .boost-slider-value {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: var(--color-success);
+  }
+
+  :global(.boost-slider) {
+    width: 100%;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--color-border);
+    border-radius: 3px;
+    cursor: pointer;
+    accent-color: var(--color-success);
+  }
+
+  :global(.boost-slider::-webkit-slider-thumb) {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--color-success);
+    box-shadow: 0 1px 4px rgba(45, 96, 64, 0.35);
+    transition: transform var(--transition);
+  }
+
+  :global(.boost-slider::-webkit-slider-thumb:hover) {
+    transform: scale(1.15);
+  }
+
+  :global(.boost-slider::-moz-range-thumb) {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--color-success);
+    border: none;
+    cursor: pointer;
+  }
+
   /* ── Impact card (Step 3) ── */
   .impact-card {
     padding: 16px 0 4px;
@@ -3051,6 +3217,18 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   .impact-desc {
     font-size: 0.8125rem;
     color: var(--color-text-secondary);
+  }
+
+  .impact-delta {
+    display: block;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: var(--color-success);
+    margin-bottom: 4px;
+  }
+
+  .impact-delta[hidden] {
+    display: none;
   }
 
   .impact-number--conf {
