@@ -897,7 +897,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   function renderHliContribution() {
     const el = qs('#hliContribAmount');
     if (!el) return;
-    const amt = (state.amount || 0) * impactMultiplier();
+    const amt = state.amount || 0;
     const hliAmount = amt * (state.hliPct / 100);
     if (hliAmount <= 0) {
       el.textContent = '';
@@ -905,7 +905,10 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     }
     const sym = getCurrencySymbol(state.currency);
     const extraDepressionYears = toUSD(hliAmount) / 9.5;
-    el.innerHTML = `<strong>${sym}${hliAmount.toFixed(2)}</strong> — averts an estimated <strong>${fmt(extraDepressionYears)}</strong> additional year${extraDepressionYears === 1 ? '' : 's'} of depression`;
+    const isMonthly = state.frequency === 'monthly';
+    const cadence = isMonthly ? ' per month' : '';
+    const everyPeriod = isMonthly ? ' every month' : '';
+    el.innerHTML = `<strong>${sym}${hliAmount.toFixed(2)}</strong>${cadence} to HLI averts an estimated <strong>${fmt(extraDepressionYears)}</strong> additional year${extraDepressionYears === 1 ? '' : 's'} of depression${everyPeriod}`;
   }
 
   // Show/hide the Per month / Per year / Lifetime control (monthly donations
