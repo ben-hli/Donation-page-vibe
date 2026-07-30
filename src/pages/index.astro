@@ -948,7 +948,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     if (state.frequency !== 'monthly') return '';
     if (state.impactTimeframe === 'year') return ' per year';
     if (state.impactTimeframe === 'lifetime') return ' over your lifetime';
-    return ' per month';
+    return '/month';
   }
 
   function syncImpactLabels(prefix) {
