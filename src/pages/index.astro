@@ -340,7 +340,10 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
           <div class="adjust-amount-body">
             <div class="freq-toggle freq-toggle--compact" role="group" aria-label="Donation frequency">
               <button type="button" class="freq-btn" data-freq="one-off">One-time</button>
-              <button type="button" class="freq-btn active" data-freq="monthly">Monthly</button>
+              <button type="button" class="freq-btn active" data-freq="monthly">
+                <span class="badge-recommended freq-btn-sticker">Most impactful</span>
+                Monthly
+              </button>
             </div>
 
             <div class="boost-slider-row" id="boostSliderRow">
@@ -348,19 +351,19 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
                 <span class="boost-slider-label">Boost your impact</span>
                 <span class="boost-slider-value" id="boostSliderValue"></span>
               </div>
-              <input
-                type="range"
-                class="boost-slider"
-                id="boostSlider"
-                min="0"
-                max="0"
-                step="1"
-                value="0"
-                aria-label="Increase your donation amount"
-              />
-              <div class="boost-slider-range-labels">
-                <span id="boostSliderMinLabel"></span>
-                <span id="boostSliderMaxLabel"></span>
+              <div class="boost-slider-track-row">
+                <span class="boost-slider-range-label" id="boostSliderMinLabel"></span>
+                <input
+                  type="range"
+                  class="boost-slider"
+                  id="boostSlider"
+                  min="0"
+                  max="0"
+                  step="1"
+                  value="0"
+                  aria-label="Increase your donation amount"
+                />
+                <span class="boost-slider-range-label" id="boostSliderMaxLabel"></span>
               </div>
             </div>
           </div>
@@ -894,14 +897,14 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   function renderHliContribution() {
     const el = qs('#hliContribAmount');
     if (!el) return;
-    const amt = state.amount || 0;
+    const amt = (state.amount || 0) * impactMultiplier();
     const hliAmount = amt * (state.hliPct / 100);
     if (hliAmount <= 0) {
       el.textContent = '';
       return;
     }
     const sym = getCurrencySymbol(state.currency);
-    const extraDepressionYears = hliAmount / 9.5;
+    const extraDepressionYears = toUSD(hliAmount) / 9.5;
     el.innerHTML = `<strong>${sym}${hliAmount.toFixed(2)}</strong> — averts an estimated <strong>${fmt(extraDepressionYears)}</strong> additional year${extraDepressionYears === 1 ? '' : 's'} of depression`;
   }
 
@@ -3138,23 +3141,27 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     color: var(--color-primary);
   }
 
-  .boost-slider-range-labels {
+  .boost-slider-track-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    margin-top: 8px;
+    gap: 12px;
+  }
+
+  .boost-slider-range-label {
+    flex-shrink: 0;
     font-size: 0.9375rem;
     font-weight: 600;
     color: var(--color-text-secondary);
   }
 
   :global(.boost-slider) {
+    flex: 1;
     width: 100%;
-    height: 10px;
+    height: 6px;
     -webkit-appearance: none;
     appearance: none;
     background: var(--color-primary);
-    border-radius: 5px;
+    border-radius: 3px;
     cursor: pointer;
     accent-color: var(--color-primary);
   }
@@ -3162,11 +3169,11 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   :global(.boost-slider::-webkit-slider-thumb) {
     -webkit-appearance: none;
     appearance: none;
-    width: 28px;
-    height: 28px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     background: var(--color-white);
-    border: 3px solid var(--color-primary);
+    border: 2px solid var(--color-primary);
     box-shadow: 0 1px 4px rgba(28, 58, 94, 0.35);
     transition: transform var(--transition);
   }
@@ -3176,11 +3183,11 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   }
 
   :global(.boost-slider::-moz-range-thumb) {
-    width: 28px;
-    height: 28px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     background: var(--color-white);
-    border: 3px solid var(--color-primary);
+    border: 2px solid var(--color-primary);
     cursor: pointer;
   }
 
