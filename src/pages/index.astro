@@ -1303,7 +1303,9 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
       <div class="review-row"><span>Email</span><span>${state.donor.email}</span></div>
       ${addressDisplay ? `<div class="review-row"><span>Address</span><span>${addressDisplay}</span></div>` : ''}
       <div class="review-row"><span>Giving to</span><span>${dest}</span></div>
-      <div class="review-row"><span>Amount</span><span>${sym}${state.amount}${freq}</span></div>
+      ${hliFeeRow
+        ? `<div class="review-row"><span>Amount</span><span>${sym}${state.amount}${freq}</span></div>`
+        : `<div class="review-row review-row--total"><span>Total charge</span><span>${sym}${state.amount}${freq}</span></div>`}
       ${pledgeRow}
       ${splits}
       ${hliFeeRow}
