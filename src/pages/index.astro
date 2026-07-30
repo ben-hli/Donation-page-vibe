@@ -325,6 +325,37 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
         <!-- Charity split sliders — populated by JS as charities are added -->
         <div class="charity-splits" id="charitySplits"></div>
 
+        <!-- Adjust amount (collapsed by default) — lets donors tweak the amount here
+             and immediately see the effect on the impact calculator below. -->
+        <details class="adjust-amount-details" id="adjustAmountDetails">
+          <summary class="adjust-amount-summary">
+            Change your donation amount
+            <svg class="adjust-amount-chevron" aria-hidden="true" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </summary>
+          <div class="adjust-amount-body">
+            <div class="amount-row">
+              <div class="amount-input-wrapper">
+                <span class="amount-symbol" id="adjustAmountCurrencySymbol">$</span>
+                <input
+                  type="number"
+                  id="adjustAmount"
+                  placeholder="0"
+                  min="1"
+                  step="1"
+                  aria-label="Donation amount"
+                />
+              </div>
+            </div>
+            <div class="preset-amounts" aria-label="Preset amounts" id="adjustPresetAmounts" data-freq="monthly">
+              {[10, 25, 50, 100, 250, 500].map((n) => (
+                <button type="button" class="preset-btn" data-amount={n}>{n}</button>
+              ))}
+            </div>
+          </div>
+        </details>
+
         <!-- Impact calculator -->
         <div class="impact-card">
           <div class="impact-header-row">
@@ -690,7 +721,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   function onStepEnter(n) {
     document.body.classList.toggle('step-3-active', n === 3);
     if (n === 2) { fitAmountSymbol('currencySymbol'); fitAmountSymbol('pledgeCurrencySymbol'); renderHlfImpact(); }
-    if (n === 3) renderImpact();
+    if (n === 3) { fitAmountSymbol('adjustAmountCurrencySymbol'); renderImpact(); }
     if (n === 5) { renderReview(); initPaymentElement(); }
   }
 
@@ -768,8 +799,10 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   function updateCurrencySymbol() {
     qs('#currencySymbol').textContent = getCurrencySymbol(state.currency);
     qs('#pledgeCurrencySymbol').textContent = getCurrencySymbol(state.currency);
+    qs('#adjustAmountCurrencySymbol').textContent = getCurrencySymbol(state.currency);
     fitAmountSymbol('currencySymbol');
     fitAmountSymbol('pledgeCurrencySymbol');
+    fitAmountSymbol('adjustAmountCurrencySymbol');
     renderPresetLabels();
   }
 
@@ -1286,16 +1319,35 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
       'one-off': { list: [25, 50, 100, 250, 500, 1000], default: 100 },
     };
 
+    // Both the main Amount step and the "Change your donation amount" section on
+    // the Allocate step share the same amount input/preset-button pattern —
+    // keep them in sync with each other and with state.amount.
+    const AMOUNT_INPUT_IDS = ['amount', 'adjustAmount'];
+    const PRESET_CONTAINER_IDS = ['presetAmounts', 'adjustPresetAmounts'];
+
+    function syncAmountInputs(amt) {
+      AMOUNT_INPUT_IDS.forEach((id) => {
+        const el = qs(`#${id}`);
+        if (el) el.value = amt === null ? '' : String(amt);
+      });
+    }
+
+    function syncPresetActiveState(amt) {
+      qsa('.preset-btn').forEach((b) => b.classList.remove('active'));
+      if (amt === null) return;
+      qsa(`.preset-btn[data-amount="${amt}"]`).forEach((b) => b.classList.add('active'));
+    }
+
     function bindPresetButtons() {
       qsa('.preset-btn').forEach((btn) => {
         btn.addEventListener('click', () => {
           const amt = Number(btn.dataset.amount);
           state.amount = amt;
-          qs('#amount').value = String(amt);
-          qsa('.preset-btn').forEach((b) => b.classList.remove('active'));
-          btn.classList.add('active');
+          syncAmountInputs(amt);
+          syncPresetActiveState(amt);
           renderNavButtons();
           renderHlfImpact();
+          renderImpact();
         });
       });
     }
@@ -1303,17 +1355,20 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     function renderPresets(freq, opts = {}) {
       const config = PRESETS_BY_FREQ[freq];
       if (!config) return;
-      const container = qs('#presetAmounts');
-      container.dataset.freq = freq;
-      container.innerHTML = config.list
+      const buttonsHtml = config.list
         .map((n) => `<button type="button" class="preset-btn" data-amount="${n}">${n}</button>`)
         .join('');
+      PRESET_CONTAINER_IDS.forEach((id) => {
+        const container = qs(`#${id}`);
+        if (!container) return;
+        container.dataset.freq = freq;
+        container.innerHTML = buttonsHtml;
+      });
       bindPresetButtons();
       if (opts.applyDefault) {
         state.amount = config.default;
-        qs('#amount').value = String(config.default);
-        const match = qs(`.preset-btn[data-amount="${config.default}"]`);
-        if (match) match.classList.add('active');
+        syncAmountInputs(config.default);
+        syncPresetActiveState(config.default);
       }
     }
 
@@ -1356,16 +1411,18 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
       renderHlfImpact();
     });
 
-    // Step 2: amount input
-    qs('#amount').addEventListener('input', (e) => {
-      state.amount = e.target.value ? Number(e.target.value) : null;
-      qsa('.preset-btn').forEach((b) => b.classList.remove('active'));
-      if (state.amount) {
-        const match = qs(`.preset-btn[data-amount="${state.amount}"]`);
-        if (match) match.classList.add('active');
-      }
-      renderNavButtons();
-      renderHlfImpact();
+    // Step 2 amount input, and its mirror in the Allocate step's
+    // "Change your donation amount" section — keep both in sync.
+    AMOUNT_INPUT_IDS.forEach((id) => {
+      qs(`#${id}`)?.addEventListener('input', (e) => {
+        const amt = e.target.value ? Number(e.target.value) : null;
+        state.amount = amt;
+        syncAmountInputs(amt);
+        syncPresetActiveState(amt);
+        renderNavButtons();
+        renderHlfImpact();
+        renderImpact();
+      });
     });
 
     // Step 2: preset amounts (initial bind + default selection for the default frequency)
@@ -2834,6 +2891,52 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     background: var(--color-primary);
     border: none;
     cursor: pointer;
+  }
+
+  /* ── Adjust amount (collapsible, Step 3) ── */
+  .adjust-amount-details {
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius);
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+
+  .adjust-amount-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 14px 16px;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--color-text);
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .adjust-amount-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .adjust-amount-chevron {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    color: var(--color-text-secondary);
+    transition: transform var(--transition);
+  }
+
+  .adjust-amount-details[open] .adjust-amount-chevron {
+    transform: rotate(180deg);
+  }
+
+  .adjust-amount-body {
+    padding: 4px 16px 20px;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .adjust-amount-body .amount-row {
+    margin-top: 16px;
   }
 
   /* ── Impact card (Step 3) ── */
