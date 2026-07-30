@@ -6,6 +6,7 @@ export interface Charity {
   costPerWellby: number;
   confidenceScore: number;
   outcomeLabel: string;
+  outcomeLabelSingular: string;
   costPerOutcome: number;
   website: string;
   tier: 'top' | 'promising';
@@ -33,6 +34,7 @@ export const charities: Charity[] = [
     costPerWellby: 24.77,
     confidenceScore: 10,
     outcomeLabel: 'Group psychotherapy courses funded',
+    outcomeLabelSingular: 'group psychotherapy course funded',
     costPerOutcome: 44.56,
     website: 'https://strongminds.org',
     tier: 'top',
@@ -47,6 +49,7 @@ export const charities: Charity[] = [
     costPerWellby: 20.61,
     confidenceScore: 9,
     outcomeLabel: 'One-to-one psychotherapy courses funded',
+    outcomeLabelSingular: 'one-to-one psychotherapy course funded',
     costPerOutcome: 16.50,
     website: 'https://www.friendshipbenchzimbabwe.org',
     tier: 'top',
@@ -61,6 +64,7 @@ export const charities: Charity[] = [
     costPerWellby: 9.49,
     confidenceScore: 4,
     outcomeLabel: 'Children protected from lead exposure',
+    outcomeLabelSingular: 'child protected from lead exposure',
     costPerOutcome: 0.23,
     website: 'https://www.pureearth.org',
     tier: 'promising',
@@ -75,6 +79,7 @@ export const charities: Charity[] = [
     costPerWellby: 15.15,
     confidenceScore: 3,
     outcomeLabel: 'Children protected from malnutrition',
+    outcomeLabelSingular: 'child protected from malnutrition',
     costPerOutcome: 87.21,
     website: 'https://taimaka.org',
     tier: 'promising',
