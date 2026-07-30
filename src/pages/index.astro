@@ -335,23 +335,9 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
             </svg>
           </summary>
           <div class="adjust-amount-body">
-            <div class="amount-row">
-              <div class="amount-input-wrapper">
-                <span class="amount-symbol" id="adjustAmountCurrencySymbol">$</span>
-                <input
-                  type="number"
-                  id="adjustAmount"
-                  placeholder="0"
-                  min="1"
-                  step="1"
-                  aria-label="Donation amount"
-                />
-              </div>
-            </div>
-            <div class="preset-amounts" aria-label="Preset amounts" id="adjustPresetAmounts" data-freq="monthly">
-              {[10, 25, 50, 100, 250, 500].map((n) => (
-                <button type="button" class="preset-btn" data-amount={n}>{n}</button>
-              ))}
+            <div class="freq-toggle freq-toggle--compact" role="group" aria-label="Donation frequency">
+              <button type="button" class="freq-btn" data-freq="one-off">One-time</button>
+              <button type="button" class="freq-btn active" data-freq="monthly">Monthly</button>
             </div>
 
             <div class="boost-slider-row" id="boostSliderRow">
@@ -369,6 +355,10 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
                 value="0"
                 aria-label="Increase your donation amount"
               />
+              <div class="boost-slider-range-labels">
+                <span id="boostSliderMinLabel"></span>
+                <span id="boostSliderMaxLabel"></span>
+              </div>
             </div>
           </div>
         </details>
@@ -413,14 +403,18 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
           <div class="impact-metrics-box">
             <div class="impact-metrics impact-metrics--two">
               <div class="impact-metric">
-                <div class="impact-number" id="impactWellbys">—</div>
-                <span class="impact-delta" id="impactWellbysDelta" hidden></span>
+                <div class="impact-number-wrap">
+                  <div class="impact-number" id="impactWellbys">—</div>
+                  <span class="impact-delta" id="impactWellbysDelta" hidden></span>
+                </div>
                 <div class="impact-desc">WELLBYs generated</div>
               </div>
               <span class="impact-equals" aria-hidden="true">=</span>
               <div class="impact-metric impact-metric--secondary">
-                <div class="impact-number" id="impactDepressionYears">—</div>
-                <span class="impact-delta" id="impactDepressionYearsDelta" hidden></span>
+                <div class="impact-number-wrap">
+                  <div class="impact-number" id="impactDepressionYears">—</div>
+                  <span class="impact-delta" id="impactDepressionYearsDelta" hidden></span>
+                </div>
                 <div class="impact-desc">years of depression averted</div>
               </div>
             </div>
@@ -741,7 +735,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   function onStepEnter(n) {
     document.body.classList.toggle('step-3-active', n === 3);
     if (n === 2) { fitAmountSymbol('currencySymbol'); fitAmountSymbol('pledgeCurrencySymbol'); renderHlfImpact(); }
-    if (n === 3) { fitAmountSymbol('adjustAmountCurrencySymbol'); renderImpact(); }
+    if (n === 3) renderImpact();
     if (n === 5) { renderReview(); initPaymentElement(); }
   }
 
@@ -819,10 +813,8 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   function updateCurrencySymbol() {
     qs('#currencySymbol').textContent = getCurrencySymbol(state.currency);
     qs('#pledgeCurrencySymbol').textContent = getCurrencySymbol(state.currency);
-    qs('#adjustAmountCurrencySymbol').textContent = getCurrencySymbol(state.currency);
     fitAmountSymbol('currencySymbol');
     fitAmountSymbol('pledgeCurrencySymbol');
-    fitAmountSymbol('adjustAmountCurrencySymbol');
     renderPresetLabels();
   }
 
@@ -947,6 +939,8 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     const slider = qs('#boostSlider');
     const row = qs('#boostSliderRow');
     const valueEl = qs('#boostSliderValue');
+    const minLabelEl = qs('#boostSliderMinLabel');
+    const maxLabelEl = qs('#boostSliderMaxLabel');
     if (!slider || !row || !valueEl) return;
 
     const added = addedCharities();
@@ -963,11 +957,14 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     }
 
     const baseline = state.boostBaseline;
-    const max = Math.max(baseline * 5, baseline + 1);
+    const max = Math.max(baseline * 3, baseline + 1);
+    const sym = getCurrencySymbol(state.currency);
     slider.min = String(baseline);
     slider.max = String(max);
     slider.value = String(state.amount);
-    valueEl.textContent = `${getCurrencySymbol(state.currency)}${state.amount}`;
+    valueEl.textContent = `${sym}${state.amount}`;
+    if (minLabelEl) minLabelEl.textContent = `${sym}${baseline}`;
+    if (maxLabelEl) maxLabelEl.textContent = `${sym}${max}`;
 
     const splitFractions = currentSplitFractions();
     const baselineWellbys = calcWellbys(toUSD(baseline) * impactMultiplier(), splitFractions);
@@ -1408,11 +1405,9 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
       'one-off': { list: [25, 50, 100, 250, 500, 1000], default: 100 },
     };
 
-    // Both the main Amount step and the "Change your donation amount" section on
-    // the Allocate step share the same amount input/preset-button pattern —
-    // keep them in sync with each other and with state.amount.
-    const AMOUNT_INPUT_IDS = ['amount', 'adjustAmount'];
-    const PRESET_CONTAINER_IDS = ['presetAmounts', 'adjustPresetAmounts'];
+    // Amount input/preset-button pattern on the main Amount step.
+    const AMOUNT_INPUT_IDS = ['amount'];
+    const PRESET_CONTAINER_IDS = ['presetAmounts'];
 
     function syncAmountInputs(amt) {
       AMOUNT_INPUT_IDS.forEach((id) => {
@@ -1479,6 +1474,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
         }
         renderNavButtons();
         renderHlfImpact();
+        renderImpact();
       });
     });
 
@@ -3045,8 +3041,8 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     padding: 0 16px 16px;
   }
 
-  .adjust-amount-body .amount-row {
-    margin-top: 4px;
+  .freq-toggle--compact {
+    margin-top: 0;
   }
 
   .boost-slider-row {
@@ -3071,7 +3067,16 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   .boost-slider-value {
     font-size: 0.9375rem;
     font-weight: 700;
-    color: var(--color-success);
+    color: var(--color-primary);
+  }
+
+  .boost-slider-range-labels {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
   }
 
   :global(.boost-slider) {
@@ -3079,10 +3084,10 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     height: 6px;
     -webkit-appearance: none;
     appearance: none;
-    background: var(--color-border);
+    background: var(--color-primary);
     border-radius: 3px;
     cursor: pointer;
-    accent-color: var(--color-success);
+    accent-color: var(--color-primary);
   }
 
   :global(.boost-slider::-webkit-slider-thumb) {
@@ -3091,8 +3096,9 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: var(--color-success);
-    box-shadow: 0 1px 4px rgba(45, 96, 64, 0.35);
+    background: var(--color-white);
+    border: 2px solid var(--color-primary);
+    box-shadow: 0 1px 4px rgba(28, 58, 94, 0.35);
     transition: transform var(--transition);
   }
 
@@ -3104,8 +3110,8 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: var(--color-success);
-    border: none;
+    background: var(--color-white);
+    border: 2px solid var(--color-primary);
     cursor: pointer;
   }
 
@@ -3206,12 +3212,17 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   }
 
 
+  .impact-number-wrap {
+    position: relative;
+    display: inline-block;
+    margin-bottom: 6px;
+  }
+
   .impact-number {
     font-size: clamp(1.5rem, 4.5vw, 2.125rem);
     font-weight: 800;
     color: var(--color-primary);
     line-height: 1;
-    margin-bottom: 6px;
   }
 
   .impact-desc {
@@ -3220,11 +3231,14 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   }
 
   .impact-delta {
-    display: block;
-    font-size: 0.9375rem;
+    position: absolute;
+    top: -2px;
+    left: 100%;
+    margin-left: 4px;
+    font-size: 0.8125rem;
     font-weight: 700;
     color: var(--color-success);
-    margin-bottom: 4px;
+    white-space: nowrap;
   }
 
   .impact-delta[hidden] {
