@@ -3345,8 +3345,24 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   }
 
   .impact-desc {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
     font-size: 0.8125rem;
     color: var(--color-text-secondary);
+    white-space: nowrap;
+  }
+
+  .impact-desc :global(.info-btn) {
+    padding: 0;
+    font-size: 0.875rem;
+  }
+
+  @media (max-width: 400px) {
+    .impact-desc {
+      font-size: 0.75rem;
+    }
   }
 
   .impact-delta {
