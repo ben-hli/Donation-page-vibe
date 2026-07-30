@@ -1072,7 +1072,12 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     wellbysEl.textContent = fmt(totalWellbys);
     deprYrsEl.textContent = fmt(depressionYears);
     bkEl.innerHTML = breakdown
-      .map((b) => `<div class="impact-bk-row"><span>${b.name}</span><span aria-hidden="true"></span><span>${b.outcomesDelta !== null && b.outcomesDelta > 0.005 ? `<span class="impact-bk-delta">+${fmt(b.outcomesDelta)}</span> ` : ''}<strong class="impact-bk-value">${fmt(b.outcomes)}</strong> ${b.outcomeLabel}</span></div>`)
+      .map((b) => `<div class="impact-bk-row">
+        <span class="impact-bk-name">${b.name}</span>
+        <span class="impact-bk-delta">${b.outcomesDelta !== null && b.outcomesDelta > 0.005 ? `+${fmt(b.outcomesDelta)}` : ''}</span>
+        <strong class="impact-bk-value">${fmt(b.outcomes)}</strong>
+        <span class="impact-bk-label">${b.outcomeLabel}</span>
+      </div>`)
       .join('');
 
     // Outcome cards
@@ -1142,7 +1147,12 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     wellbysEl.textContent = fmt(totalWellbys);
     deprYrsEl.textContent = fmt(depressionYears);
     bkEl.innerHTML = breakdown
-      .map((b) => `<div class="impact-bk-row"><span>${b.name}</span><span aria-hidden="true"></span><span><strong class="impact-bk-value">${fmt(b.outcomes)}</strong> ${b.outcomeLabel}</span></div>`)
+      .map((b) => `<div class="impact-bk-row">
+        <span class="impact-bk-name">${b.name}</span>
+        <span class="impact-bk-delta"></span>
+        <strong class="impact-bk-value">${fmt(b.outcomes)}</strong>
+        <span class="impact-bk-label">${b.outcomeLabel}</span>
+      </div>`)
       .join('');
   }
 
@@ -3321,7 +3331,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 
   .impact-breakdown {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
     row-gap: 4px;
   }
 
@@ -3331,20 +3341,31 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     color: var(--color-text-secondary);
   }
 
-  :global(.impact-bk-row span:first-child) {
+  :global(.impact-bk-name) {
     text-align: left;
     padding-left: 8px;
   }
 
-  :global(.impact-bk-row span:last-child) {
-    text-align: left;
-    padding-left: 12px;
+  :global(.impact-bk-delta) {
+    min-width: 2.5em;
+    padding-right: 6px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
 
   :global(.impact-bk-value) {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
     color: var(--color-primary);
     font-weight: 800;
+  }
+
+  :global(.impact-bk-label) {
+    text-align: left;
+    padding-left: 6px;
+    white-space: nowrap;
   }
 
   :global(.impact-bk-delta) {
