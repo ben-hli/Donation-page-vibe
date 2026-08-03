@@ -957,6 +957,11 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     const yearsEl = qs(`#${prefix}DepressionYearsLabel`);
     if (wellbysEl) wellbysEl.textContent = `WELLBYs generated${suffix}`;
     if (yearsEl) yearsEl.textContent = `years of depression averted${suffix}`;
+    const shouldWrap = state.impactTimeframe === 'lifetime';
+    const wellbysDesc = wellbysEl?.closest('.impact-desc');
+    const yearsDesc = yearsEl?.closest('.impact-desc');
+    wellbysDesc?.classList.toggle('impact-desc--wrap', shouldWrap);
+    yearsDesc?.classList.toggle('impact-desc--wrap', shouldWrap);
   }
 
   // Pure calculator used by both the impact card and the boost-slider delta —
@@ -3353,6 +3358,12 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     gap: 2px;
     font-size: 0.8125rem;
     color: var(--color-text-secondary);
+    white-space: nowrap;
+  }
+
+  .impact-desc--wrap {
+    white-space: normal;
+    text-align: center;
   }
 
   .impact-desc :global(.info-btn) {
