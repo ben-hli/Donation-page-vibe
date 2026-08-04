@@ -37,6 +37,8 @@ export const charities: Charity[] = [
     website: 'https://strongminds.org',
     tier: 'top',
     defaultSplitPct: 33.33,
+    reportUrl:
+      'https://www.happierlivesinstitute.org/report/the-wellbeing-cost-effectiveness-of-strongminds-and-friendship-bench-combining-a-systematic-review-and-meta-analysis-with-charity-related-data-nov-2024-update/',
   },
   {
     id: 'friendship-bench',
@@ -51,6 +53,8 @@ export const charities: Charity[] = [
     website: 'https://www.friendshipbenchzimbabwe.org',
     tier: 'top',
     defaultSplitPct: 33.33,
+    reportUrl:
+      'https://www.happierlivesinstitute.org/report/the-wellbeing-cost-effectiveness-of-strongminds-and-friendship-bench-combining-a-systematic-review-and-meta-analysis-with-charity-related-data-nov-2024-update/',
   },
   {
     id: 'pure-earth',
@@ -65,6 +69,8 @@ export const charities: Charity[] = [
     website: 'https://www.pureearth.org',
     tier: 'promising',
     defaultSplitPct: 20,
+    reportUrl:
+      'https://www.happierlivesinstitute.org/report/toxic-cosmetics-a-shallow-evaluation-of-pure-earth-advocacy-against-leaded-cosmetics-in-ghana/',
   },
   {
     id: 'taimaka',
@@ -79,6 +85,8 @@ export const charities: Charity[] = [
     website: 'https://taimaka.org',
     tier: 'promising',
     defaultSplitPct: 13.33,
+    reportUrl:
+      'https://www.happierlivesinstitute.org/report/how-treating-malnutrition-impacts-happiness-a-charity-evaluation-of-taimaka/',
   },
 ];
 
