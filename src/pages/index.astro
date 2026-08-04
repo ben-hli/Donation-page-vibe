@@ -237,7 +237,11 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
               <div class="charity-picker-card" data-charity-id={c.id}>
                 <div class="charity-picker-logo">
                   {c.logoUrl
-                    ? <img src={c.logoUrl} alt={`${c.name} logo`} />
+                    ? <img
+                        src={c.logoUrl}
+                        alt={`${c.name} logo`}
+                        style={c.logoZoom ? `transform: scale(${c.logoZoom});` : undefined}
+                      />
                     : <span class="charity-picker-logo-fallback" aria-hidden="true">{c.name.charAt(0)}</span>
                   }
                 </div>
@@ -291,7 +295,11 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
               <div class="charity-picker-card" data-charity-id={c.id}>
                 <div class="charity-picker-logo">
                   {c.logoUrl
-                    ? <img src={c.logoUrl} alt={`${c.name} logo`} />
+                    ? <img
+                        src={c.logoUrl}
+                        alt={`${c.name} logo`}
+                        style={c.logoZoom ? `transform: scale(${c.logoZoom});` : undefined}
+                      />
                     : <span class="charity-picker-logo-fallback" aria-hidden="true">{c.name.charAt(0)}</span>
                   }
                 </div>
@@ -2846,13 +2854,14 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     flex-shrink: 0;
     width: 48px;
     height: 48px;
+    border-radius: 50%;
+    overflow: hidden;
   }
 
   .charity-picker-logo img {
     width: 100%;
     height: 100%;
     object-fit: contain;
-    border-radius: 50%;
     background: var(--color-white);
     border: 1px solid var(--color-border-strong);
     padding: 4px;

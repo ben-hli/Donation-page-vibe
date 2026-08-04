@@ -11,6 +11,7 @@ export interface Charity {
   tier: 'top' | 'promising';
   defaultSplitPct: number;
   logoUrl?: string;
+  logoZoom?: number;
   reportUrl?: string;
 }
 
@@ -89,6 +90,7 @@ export const charities: Charity[] = [
     tier: 'promising',
     defaultSplitPct: 13.33,
     logoUrl: '/images/taimaka-logo.webp',
+    logoZoom: 1.8,
     reportUrl:
       'https://www.happierlivesinstitute.org/report/how-treating-malnutrition-impacts-happiness-a-charity-evaluation-of-taimaka/',
   },
