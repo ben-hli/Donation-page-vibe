@@ -3438,6 +3438,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 
   .impact-metric {
     padding: 8px 4px;
+    min-width: 0;
   }
 
 
@@ -3472,6 +3473,13 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   .impact-desc :global(.info-btn) {
     padding: 0;
     font-size: 0.875rem;
+  }
+
+  @media (max-width: 480px) {
+    .impact-desc {
+      white-space: normal;
+      text-align: center;
+    }
   }
 
   @media (max-width: 400px) {
@@ -3556,6 +3564,43 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     text-align: left;
     padding-left: 6px;
     white-space: nowrap;
+  }
+
+  /* The 4-column layout (name | delta | value | label) can't fit a long
+     charity + outcome label on a narrow phone even with minmax(0, 1fr) --
+     the auto columns claim their full nowrap width first and starve the
+     name column to 0. Turn each row into its own wrapping flex box instead:
+     the name takes a full-width line (flex-basis: 100%), then delta/value/
+     label wrap together beneath it. */
+  @media (max-width: 480px) {
+    .impact-breakdown {
+      display: block;
+      row-gap: 0;
+    }
+
+    :global(.impact-bk-row) {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      column-gap: 6px;
+      padding-bottom: 6px;
+    }
+
+    :global(.impact-bk-name) {
+      flex-basis: 100%;
+      padding-left: 0;
+      font-weight: 600;
+    }
+
+    :global(.impact-bk-delta) {
+      min-width: 0;
+      padding-right: 0;
+    }
+
+    :global(.impact-bk-label) {
+      white-space: normal;
+      padding-left: 0;
+    }
   }
 
   :global(.impact-bk-delta) {
