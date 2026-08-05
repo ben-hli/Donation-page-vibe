@@ -2096,20 +2096,37 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   function initTooltips() {
     const popup = qs('#tooltipPopup');
     const textEl = qs('#tooltipText');
+    const TOOLTIP_MAX_WIDTH = 280;
+    const VIEWPORT_MARGIN = 8;
     let hideTimer;
+    let openBtn = null;
 
     function show(btn) {
       clearTimeout(hideTimer);
+      openBtn = btn;
       textEl.textContent = btn.dataset.tooltip;
       popup.removeAttribute('hidden');
       const rect = btn.getBoundingClientRect();
       const scrollY = window.scrollY;
-      popup.style.top = `${rect.bottom + scrollY + 8}px`;
-      popup.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - 300))}px`;
+      const scrollX = window.scrollX;
+      const popupHeight = popup.offsetHeight;
+      const left = Math.max(
+        VIEWPORT_MARGIN,
+        Math.min(rect.left, window.innerWidth - TOOLTIP_MAX_WIDTH - VIEWPORT_MARGIN)
+      );
+      const fitsBelow = rect.bottom + popupHeight + VIEWPORT_MARGIN <= window.innerHeight;
+      const top = fitsBelow
+        ? rect.bottom + scrollY + 8
+        : Math.max(VIEWPORT_MARGIN, rect.top + scrollY - popupHeight - 8);
+      popup.style.left = `${left + scrollX}px`;
+      popup.style.top = `${top}px`;
     }
 
     function hide() {
-      hideTimer = setTimeout(() => popup.setAttribute('hidden', ''), 150);
+      hideTimer = setTimeout(() => {
+        popup.setAttribute('hidden', '');
+        openBtn = null;
+      }, 150);
     }
 
     document.addEventListener('mouseover', (e) => {
@@ -2117,6 +2134,29 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
       if (btn) show(btn);
       else if (!popup.contains(e.target)) hide();
     });
+
+    // Tap-to-toggle so tooltips work on touch devices, which don't fire
+    // hover/mouseover. Toggling (rather than only opening) lets a second tap
+    // on the same button close it, since there's no hover-out to close it.
+    // Uses the capture phase so it still runs even on info-btns inside
+    // .option-card/.freq-toggle labels that stopPropagation() on bubble to
+    // suppress the label's native radio-activation behavior.
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.info-btn[data-tooltip]');
+      if (btn) {
+        clearTimeout(hideTimer);
+        if (openBtn === btn && !popup.hasAttribute('hidden')) {
+          popup.setAttribute('hidden', '');
+          openBtn = null;
+        } else {
+          show(btn);
+        }
+      } else if (!popup.contains(e.target)) {
+        clearTimeout(hideTimer);
+        popup.setAttribute('hidden', '');
+        openBtn = null;
+      }
+    }, true);
 
     document.addEventListener('focusin', (e) => {
       const btn = e.target.closest('.info-btn[data-tooltip]');
@@ -2128,7 +2168,10 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     });
 
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') popup.setAttribute('hidden', '');
+      if (e.key === 'Escape') {
+        popup.setAttribute('hidden', '');
+        openBtn = null;
+      }
     });
 
     popup.addEventListener('mouseenter', () => clearTimeout(hideTimer));
@@ -2260,6 +2303,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   }
 
   :global(.prog-circle-btn) {
+    position: relative;
     background: none;
     border: none;
     padding: 0;
@@ -2267,6 +2311,18 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     cursor: pointer;
     border-radius: 50%;
     transition: transform var(--transition);
+  }
+
+  /* Invisible hit-area expansion to ~44px without growing the visible circle
+     or disrupting the tight progress-bar spacing. */
+  :global(.prog-circle-btn::before) {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
   }
 
   :global(.prog-circle-btn:hover) {
@@ -2306,6 +2362,21 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 
   :global(.prog-line.done) {
     background: var(--color-primary);
+  }
+
+  @media (max-width: 480px) {
+    :global(.prog-step) {
+      min-width: 0;
+      gap: 4px;
+    }
+
+    :global(.prog-label) {
+      display: none;
+    }
+
+    :global(.prog-line) {
+      min-width: 12px;
+    }
   }
 
   /* ── Form card ── */
@@ -2451,6 +2522,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 
   /* ── Info button ── */
   :global(.info-btn) {
+    position: relative;
     font-size: 1rem;
     color: var(--color-text-secondary);
     background: none;
@@ -2460,6 +2532,18 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     cursor: pointer;
     transition: color var(--transition);
     flex-shrink: 0;
+  }
+
+  /* Invisible hit-area expansion to ~44px without affecting visible icon size
+     or surrounding inline layout/spacing. */
+  :global(.info-btn::before) {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
   }
 
   :global(.info-btn:hover),
@@ -2535,6 +2619,12 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
   }
 
+  @media (max-width: 480px) {
+    .freq-btn-sticker {
+      right: -6px;
+    }
+  }
+
   .freq-btn-info {
     font-size: 0.6875rem;
     line-height: 1;
@@ -2577,7 +2667,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     border: 1.5px solid var(--color-primary);
     border-radius: var(--radius-sm);
     background: var(--color-primary-light);
-    font-size: 0.9375rem;
+    font-size: 16px;
     cursor: pointer;
     transition: border-color var(--transition);
   }
@@ -2775,7 +2865,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     padding: 8px 12px;
     border: 1.5px solid var(--color-border);
     border-radius: var(--radius-xs);
-    font-size: 0.9375rem;
+    font-size: 16px;
     color: var(--color-text);
     background: var(--color-white);
     box-sizing: border-box;
@@ -2929,8 +3019,8 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     border: 1.5px solid var(--color-border);
     background: var(--color-white);
@@ -3050,8 +3140,10 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   :global(.charity-lock-btn) {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 4px;
     padding: 4px 10px;
+    min-height: 44px;
     border: 1.5px solid var(--color-border);
     border-radius: 20px;
     background: var(--color-white);
@@ -3061,6 +3153,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     cursor: pointer;
     transition: all var(--transition);
     flex-shrink: 0;
+    box-sizing: border-box;
   }
 
   :global(.charity-lock-btn:hover) {
@@ -3402,6 +3495,15 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     display: none;
   }
 
+  @media (max-width: 480px) {
+    .impact-delta {
+      position: static;
+      display: block;
+      margin-left: 0;
+      font-size: 0.875rem;
+    }
+  }
+
   .impact-number--conf {
     font-size: clamp(0.875rem, 2.5vw, 1.0625rem);
     font-weight: 700;
@@ -3541,7 +3643,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     padding: 0 12px;
     border: 1.5px solid var(--color-border);
     border-radius: var(--radius-sm);
-    font-size: 0.9375rem;
+    font-size: 16px;
     transition: border-color var(--transition);
     background: var(--color-white);
   }
@@ -3656,6 +3758,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 12px;
     padding: 12px 16px;
     font-size: 0.9375rem;
     border-bottom: 1px solid var(--color-border);
@@ -3668,11 +3771,14 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
   :global(.review-row span:first-child) {
     color: var(--color-text-secondary);
     font-size: 0.875rem;
+    flex-shrink: 0;
   }
 
   :global(.review-row span:last-child) {
     font-weight: 600;
     text-align: right;
+    min-width: 0;
+    overflow-wrap: break-word;
   }
 
   :global(.impact-row span:last-child) {
@@ -3751,6 +3857,7 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 
   .btn {
     padding: 10px 24px;
+    min-height: 44px;
     border-radius: 10px;
     font-size: 0.9375rem;
     font-weight: 600;
@@ -3758,7 +3865,9 @@ const stripePublishableKey = import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
     transition: all var(--transition);
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
+    box-sizing: border-box;
   }
 
   .btn-back {
